@@ -28,5 +28,8 @@ touch bootstrap/cache/.gitkeep
 chmod -R 775 storage
 chmod -R 775 bootstrap/cache
 
+# Asegurar que bootstrap/cache sea escribible
+chmod 777 bootstrap/cache 2>/dev/null || chmod 775 bootstrap/cache
+
 echo "✓ Estructura de storage creada exitosamente"
 echo "✓ Permisos configurados"

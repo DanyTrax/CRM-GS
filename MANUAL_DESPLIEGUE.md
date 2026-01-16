@@ -11,7 +11,19 @@
 
 ## Instalación en cPanel
 
-### Paso 1: Subir Archivos
+### Paso 1: Clonar o Subir Archivos
+
+#### Opción A: Clonar desde Git (Recomendado)
+
+Desde SSH:
+
+```bash
+cd ~
+git clone https://github.com/DanyTrax/CRM-GS.git services.dowgroupcol.com
+cd services.dowgroupcol.com
+```
+
+#### Opción B: Subir Archivos Manualmente
 
 1. Comprimir el proyecto completo (excepto `node_modules` y `vendor`)
 2. Subir el archivo ZIP a cPanel
@@ -63,18 +75,77 @@ require __DIR__.'/vendor/autoload.php';
     ->handleRequest(Request::capture());
 ```
 
-### Paso 4: Configurar Permisos
+### Paso 4: Crear Estructura de Storage
+
+**IMPORTANTE**: Si clonaste desde Git, la carpeta `storage` no estará en el repositorio (está en `.gitignore`). Debes crearla manualmente.
+
+#### Opción 1: Usar Script Automático (Recomendado)
+
+Desde SSH:
+
+```bash
+cd ~/services.dowgroupcol.com
+bash setup-storage.sh
+```
+
+Este script creará automáticamente toda la estructura necesaria y configurará los permisos.
+
+#### Opción 2: Crear Manualmente desde SSH
+
+```bash
+cd ~/services.dowgroupcol.com
+
+# Crear estructura de carpetas de storage
+mkdir -p storage/app/public
+mkdir -p storage/framework/cache
+mkdir -p storage/framework/sessions
+mkdir -p storage/framework/views
+mkdir -p storage/logs
+mkdir -p storage/app/backups
+mkdir -p bootstrap/cache
+
+# Crear archivo .gitkeep en carpetas vacías (opcional, para mantener estructura)
+touch storage/app/.gitkeep
+touch storage/app/public/.gitkeep
+touch storage/framework/cache/.gitkeep
+touch storage/framework/sessions/.gitkeep
+touch storage/framework/views/.gitkeep
+touch storage/logs/.gitkeep
+touch bootstrap/cache/.gitkeep
+```
+
+#### Opción 3: Desde File Manager de cPanel
+
+1. Navegar a `services.dowgroupcol.com`
+2. Crear las siguientes carpetas manualmente:
+   - `storage/app/public`
+   - `storage/framework/cache`
+   - `storage/framework/sessions`
+   - `storage/framework/views`
+   - `storage/logs`
+   - `storage/app/backups`
+   - `bootstrap/cache`
+
+### Paso 5: Configurar Permisos
 
 Desde SSH o File Manager de cPanel:
 
 ```bash
 cd ~/services.dowgroupcol.com
-chmod -R 755 storage bootstrap/cache
+
+# Dar permisos de escritura a storage y cache
 chmod -R 775 storage
+chmod -R 775 bootstrap/cache
 chmod 644 .env
+
+# Si los permisos no funcionan, intentar con 755
+chmod -R 755 storage
+chmod -R 755 bootstrap/cache
 ```
 
-### Paso 5: Instalar Dependencias
+**Nota**: Si usas File Manager, hacer clic derecho en cada carpeta → "Change Permissions" → Marcar "Write" para el propietario.
+
+### Paso 6: Instalar Dependencias
 
 ```bash
 cd ~/services.dowgroupcol.com
@@ -83,7 +154,7 @@ npm install
 npm run build
 ```
 
-### Paso 6: Configurar Base de Datos
+### Paso 7: Configurar Base de Datos
 
 1. Crear base de datos desde cPanel
 2. Crear usuario y asignar permisos
@@ -99,7 +170,7 @@ DB_USERNAME=usuario_bd
 DB_PASSWORD=contraseña_bd
 ```
 
-### Paso 7: Ejecutar Instalación
+### Paso 8: Ejecutar Instalación
 
 1. Acceder a `https://services.dowgroupcol.com/install`
 2. Seguir el wizard de instalación:
@@ -108,7 +179,9 @@ DB_PASSWORD=contraseña_bd
    - Crear usuario administrador
    - Ejecutar migraciones
 
-### Paso 8: Configurar .htaccess
+**Nota**: Si el wizard muestra error sobre permisos de `storage`, volver al Paso 5 y verificar permisos.
+
+### Paso 9: Configurar .htaccess
 
 Crear/editar `.htaccess` en `services.dowgroupcol.com/`:
 

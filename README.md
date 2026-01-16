@@ -4,10 +4,20 @@ Sistema ERP/CRM/Billing desarrollado con Laravel 11.
 
 ## Requisitos
 
-- PHP 8.2+
+- **PHP 8.2+** (⚠️ Requerido - Laravel 11 no funciona con PHP 8.1)
 - MySQL 8.0+ / MariaDB
 - Composer
 - Node.js y NPM
+
+### ⚠️ Si tienes PHP 8.1 en el servidor
+
+Debes actualizar PHP a 8.2 o superior:
+
+1. En cPanel, buscar **"Select PHP Version"** o **"MultiPHP Manager"**
+2. Seleccionar el dominio `services.dowgroupcol.com`
+3. Cambiar a **PHP 8.2** o superior
+4. Guardar cambios
+5. Verificar: `php -v`
 
 ## Instalación Rápida
 

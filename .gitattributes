@@ -1,0 +1,13 @@
+# Normalizar line endings
+* text=auto
+
+# Scripts ejecutables
+*.sh text eol=lf
+
+# Archivos PHP
+*.php text eol=lf
+
+# Archivos de configuración
+*.json text eol=lf
+*.js text eol=lf
+*.css text eol=lf

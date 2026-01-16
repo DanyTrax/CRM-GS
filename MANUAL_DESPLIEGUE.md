@@ -145,21 +145,81 @@ chmod -R 755 bootstrap/cache
 
 **Nota**: Si usas File Manager, hacer clic derecho en cada carpeta → "Change Permissions" → Marcar "Write" para el propietario.
 
-### Paso 6: Instalar Dependencias
+### Paso 6: Instalación Previa (Automática - Recomendado)
+
+**IMPORTANTE**: Este paso ejecuta automáticamente todos los pasos previos necesarios.
+
+```bash
+cd ~/services.dowgroupcol.com
+bash install-pre-deploy.sh
+```
+
+Este script ejecutará automáticamente:
+- ✅ Instalación de dependencias de Composer
+- ✅ Instalación de dependencias de Node.js
+- ✅ Creación y configuración de `.env`
+- ✅ Generación de `APP_KEY`
+- ✅ Publicación de migraciones de Spatie Permission
+- ✅ Verificación de estructura de storage
+
+**Si prefieres hacerlo manualmente**, continúa con los pasos siguientes.
+
+### Paso 6 (Manual): Instalar Dependencias de Composer
 
 ```bash
 cd ~/services.dowgroupcol.com
 composer install --no-dev --optimize-autoloader
-npm install
-npm run build
 ```
 
-### Paso 7: Configurar Base de Datos
+**Nota**: Si no tienes Composer instalado en el servidor, puedes instalarlo o usar el Composer de cPanel.
 
-1. Crear base de datos desde cPanel
-2. Crear usuario y asignar permisos
-3. Acceder a `https://services.dowgroupcol.com/install` para configurar automáticamente
-   O configurar manualmente en `.env`:
+### Paso 7 (Manual): Instalar Dependencias de Node.js
+
+```bash
+cd ~/services.dowgroupcol.com
+npm install
+```
+
+**Nota**: Si no tienes Node.js, puedes usar "Setup Node.js App" en cPanel o instalar desde SSH.
+
+### Paso 8 (Manual): Configurar Archivo .env
+
+```bash
+cd ~/services.dowgroupcol.com
+
+# Copiar archivo de ejemplo
+cp .env.example .env
+
+# Generar clave de aplicación
+php artisan key:generate
+```
+
+**IMPORTANTE**: Este paso es crítico. Sin `APP_KEY`, la aplicación no funcionará.
+
+### Paso 9 (Manual): Publicar Migraciones de Spatie Permission
+
+**⚠️ CRÍTICO**: Este paso DEBE ejecutarse ANTES de las migraciones. Si no lo haces, las tablas de roles y permisos no se crearán.
+
+```bash
+cd ~/services.dowgroupcol.com
+php artisan vendor:publish --provider="Spatie\Permission\PermissionServiceProvider"
+```
+
+Esto creará las migraciones necesarias para el sistema de roles y permisos.
+
+**Verificación**: Deberías ver archivos nuevos en `database/migrations/` con nombres como:
+- `xxxx_xx_xx_xxxxxx_create_permission_tables.php`
+
+### Paso 10: Configurar Base de Datos en .env
+
+Editar el archivo `.env` y configurar la conexión a la base de datos:
+
+```bash
+cd ~/services.dowgroupcol.com
+nano .env
+```
+
+O desde File Manager de cPanel, editar `.env` y configurar:
 
 ```env
 DB_CONNECTION=mysql
@@ -170,16 +230,47 @@ DB_USERNAME=usuario_bd
 DB_PASSWORD=contraseña_bd
 ```
 
-### Paso 8: Ejecutar Instalación
+**Nota**: 
+- Crea la base de datos desde cPanel → "MySQL Databases"
+- Crea el usuario y asígnalo a la base de datos
+- Usa `localhost` como host (no `127.0.0.1`)
 
-1. Acceder a `https://services.dowgroupcol.com/install`
-2. Seguir el wizard de instalación:
-   - Verificar requisitos
-   - Configurar base de datos
-   - Crear usuario administrador
-   - Ejecutar migraciones
+### Paso 11: Ejecutar Migraciones y Seeders
 
-**Nota**: Si el wizard muestra error sobre permisos de `storage`, volver al Paso 5 y verificar permisos.
+**IMPORTANTE**: Solo ejecutar DESPUÉS de haber completado el Paso 9 (publicar migraciones de Spatie).
+
+```bash
+cd ~/services.dowgroupcol.com
+php artisan migrate --seed
+```
+
+Esto creará todas las tablas y cargará los datos iniciales:
+- 5 roles pre-configurados
+- Plantillas de correo
+- Configuraciones iniciales
+
+### Paso 12: Compilar Assets Frontend
+
+```bash
+cd ~/services.dowgroupcol.com
+npm run build
+```
+
+Esto compilará los archivos CSS de Tailwind.
+
+### Paso 13: Verificar Instalación
+
+Ahora puedes acceder al sistema:
+
+1. **Usar el Wizard de Instalación** (si prefieres interfaz gráfica):
+   - Acceder a `https://services.dowgroupcol.com/install`
+   - El wizard verificará todo y te guiará
+
+2. **O usar directamente el sistema** (si ya ejecutaste migraciones):
+   - Acceder a `https://services.dowgroupcol.com/admin`
+   - Iniciar sesión con el usuario creado en el seeder
+
+**Nota**: Si usaste el wizard, ya se habrán ejecutado las migraciones. Si hiciste todo manualmente, asegúrate de haber completado todos los pasos anteriores.
 
 ### Paso 9: Configurar .htaccess
 

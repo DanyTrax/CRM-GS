@@ -14,7 +14,7 @@ return new class extends Migration
             $table->enum('entity_type', ['natural', 'juridical'])->default('natural');
             $table->string('name'); // Razón Social o Nombre
             $table->string('id_type'); // CC, NIT, etc.
-            $table->string('id_number')->unique();
+            $table->string('id_number', 50)->unique(); // Aumentar longitud para NITs largos
             $table->text('address')->nullable();
             $table->string('city')->nullable();
             $table->string('phone')->nullable();

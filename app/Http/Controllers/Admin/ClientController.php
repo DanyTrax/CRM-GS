@@ -28,7 +28,7 @@ class ClientController extends Controller
             'name' => 'required',
             'email' => 'required|email|unique:clients,email',
             'id_type' => 'required',
-            'id_number' => 'required|unique:clients,id_number',
+            'id_number' => 'required|string|max:50|unique:clients,id_number',
             'entity_type' => 'required|in:natural,juridical',
         ]);
 
@@ -92,7 +92,7 @@ class ClientController extends Controller
             'name' => 'required',
             'email' => 'required|email|unique:clients,email,' . $client->id,
             'id_type' => 'required',
-            'id_number' => 'required|unique:clients,id_number,' . $client->id,
+            'id_number' => 'required|string|max:50|unique:clients,id_number,' . $client->id,
         ]);
 
         $client->update($request->only([

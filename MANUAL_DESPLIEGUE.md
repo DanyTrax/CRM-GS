@@ -359,11 +359,138 @@ composer dump-autoload -o
 
 ## Solución de Problemas
 
-### Error 500
+### Error 500 al acceder a /install
 
-- Verificar permisos de `storage/` y `bootstrap/cache/`
-- Revisar logs en `storage/logs/laravel.log`
-- Verificar que `.env` existe y está configurado
+Este es el error más común después de clonar. **Primero ejecuta el script de diagnóstico:**
+
+```bash
+cd ~/services.dowgroupcol.com
+bash check-install.sh
+```
+
+Este script te mostrará exactamente qué está faltando. Luego sigue estos pasos en orden:
+
+#### Paso 1: Verificar que existe el archivo .env
+
+```bash
+cd ~/services.dowgroupcol.com
+ls -la .env
+```
+
+Si no existe, crearlo:
+
+```bash
+cp .env.example .env
+php artisan key:generate
+```
+
+#### Paso 2: Verificar estructura de carpetas
+
+Asegúrate de que `index.php` esté en la raíz `services.dowgroupcol.com/` y tenga las rutas correctas:
+
+```bash
+cd ~/services.dowgroupcol.com
+cat index.php
+```
+
+El `index.php` debe tener estas rutas (sin `/public`):
+
+```php
+<?php
+use Illuminate\Http\Request;
+
+define('LARAVEL_START', microtime(true));
+
+if (file_exists($maintenance = __DIR__.'/storage/framework/maintenance.php')) {
+    require $maintenance;
+}
+
+require __DIR__.'/vendor/autoload.php';
+
+(require_once __DIR__.'/bootstrap/app.php')
+    ->handleRequest(Request::capture());
+```
+
+#### Paso 3: Verificar permisos de storage
+
+```bash
+cd ~/services.dowgroupcol.com
+chmod -R 775 storage
+chmod -R 775 bootstrap/cache
+chown -R usuario:usuario storage bootstrap/cache
+```
+
+**Nota**: Reemplazar `usuario` con tu usuario de cPanel (ejecutar `whoami` para verlo).
+
+#### Paso 4: Verificar que vendor existe
+
+```bash
+cd ~/services.dowgroupcol.com
+ls -la vendor/
+```
+
+Si no existe, instalar dependencias:
+
+```bash
+composer install --no-dev --optimize-autoloader
+```
+
+#### Paso 5: Revisar logs de error
+
+```bash
+cd ~/services.dowgroupcol.com
+tail -50 storage/logs/laravel.log
+```
+
+O desde cPanel: File Manager → `storage/logs/laravel.log`
+
+Los logs mostrarán el error exacto. Errores comunes:
+
+- **"No application encryption key has been specified"**: Ejecutar `php artisan key:generate`
+- **"Class 'X' not found"**: Ejecutar `composer install`
+- **"Permission denied"**: Revisar permisos de storage
+- **"PDOException"**: Verificar configuración de base de datos en `.env`
+
+#### Paso 6: Verificar versión de PHP
+
+En cPanel, ir a "Select PHP Version" y asegurarse de que sea PHP 8.2 o superior.
+
+#### Paso 7: Limpiar caché (si existe)
+
+```bash
+cd ~/services.dowgroupcol.com
+php artisan config:clear
+php artisan cache:clear
+php artisan route:clear
+php artisan view:clear
+```
+
+#### Paso 8: Verificar que las rutas están correctas
+
+Si moviste `public/index.php` a la raíz, verificar que las rutas apunten correctamente:
+
+- `__DIR__.'/storage'` (no `__DIR__.'/../storage'`)
+- `__DIR__.'/vendor'` (no `__DIR__.'/../vendor'`)
+- `__DIR__.'/bootstrap/app.php'` (no `__DIR__.'/../bootstrap/app.php'`)
+
+### Otros Errores Comunes
+
+#### Error: "Class 'X' not found"
+- Ejecutar: `composer install --no-dev --optimize-autoloader`
+- Verificar que `vendor/` existe
+
+#### Error: "No application encryption key"
+- Ejecutar: `php artisan key:generate`
+- Verificar que `.env` existe y tiene `APP_KEY=`
+
+#### Error: "Permission denied" en storage
+- Ejecutar: `chmod -R 775 storage bootstrap/cache`
+- Verificar propietario: `chown -R usuario:usuario storage bootstrap/cache`
+
+#### Error de conexión a base de datos
+- Verificar `.env` tiene configuración correcta
+- Verificar que la base de datos existe en cPanel
+- Verificar usuario y contraseña de BD
 
 ### Colas no procesan
 

@@ -88,16 +88,35 @@ class RolePermissionSeeder extends Seeder
         // 2. Administrador Operativo
         $admin = Role::create(['name' => 'Administrador Operativo']);
         $admin->givePermissionTo([
-            'clients.*',
-            'services.*',
-            'invoices.*',
-            'payments.*',
-            'tickets.*',
+            'clients.view',
+            'clients.create',
+            'clients.edit',
+            'clients.delete',
+            'clients.view_sensitive_data',
+            'services.view',
+            'services.create',
+            'services.edit',
+            'services.delete',
+            'services.renew',
+            'invoices.view',
+            'invoices.create',
+            'invoices.edit',
+            'invoices.delete',
+            'invoices.download_pdf',
+            'payments.view',
+            'payments.approve',
+            'payments.reject',
+            'tickets.view',
+            'tickets.create',
+            'tickets.edit',
+            'tickets.delete',
+            'tickets.reply',
             'users.view',
             'users.create',
             'users.edit',
             'reports.view',
-            'communications.*',
+            'communications.send',
+            'communications.view_logs',
         ]);
 
         // 3. Contador - Solo lectura financiera
@@ -113,7 +132,11 @@ class RolePermissionSeeder extends Seeder
         // 4. Soporte - Solo tickets
         $support = Role::create(['name' => 'Soporte']);
         $support->givePermissionTo([
-            'tickets.*',
+            'tickets.view',
+            'tickets.create',
+            'tickets.edit',
+            'tickets.delete',
+            'tickets.reply',
             'services.view',
             'clients.view',
         ]);

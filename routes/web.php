@@ -16,6 +16,11 @@ Route::post('/install/run', [InstallController::class, 'runMigrations'])->name('
 // Webhook de Bold
 Route::post('/api/bold/webhook', [BoldWebhookController::class, 'handle'])->name('bold.webhook');
 
+// Ruta de login genérica (para que el middleware auth funcione)
+Route::get('/login', function () {
+    return redirect()->route('client.login');
+})->name('login');
+
 // Rutas públicas del área de cliente
 Route::prefix('client')->name('client.')->group(function () {
     Route::get('/login', [ClientAuthController::class, 'showLogin'])->name('login');

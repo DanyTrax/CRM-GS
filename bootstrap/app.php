@@ -18,6 +18,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // Registrar alias para middleware
         $middleware->alias([
             'client' => \App\Http\Middleware\CheckClientAccess::class,
+            'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
+            'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
+            'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

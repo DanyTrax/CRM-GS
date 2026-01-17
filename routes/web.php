@@ -40,7 +40,5 @@ Route::get('/admin/login', function () {
 
 // Rutas del panel admin (requieren autenticación y permisos)
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:Super Administrador|Administrador Operativo|Contador|Soporte'])->group(function () {
-    // Se definirán en routes/admin.php
+    require __DIR__.'/admin.php';
 });
-
-require __DIR__.'/admin.php';

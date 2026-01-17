@@ -77,17 +77,18 @@ class RolePermissionSeeder extends Seeder
             'communications.view_logs',
         ];
 
+        // Crear permisos si no existen (idempotente)
         foreach ($permissions as $permission) {
-            Permission::create(['name' => $permission]);
+            Permission::firstOrCreate(['name' => $permission]);
         }
 
         // 1. Super Administrador - Acceso total
-        $superAdmin = Role::create(['name' => 'Super Administrador']);
-        $superAdmin->givePermissionTo(Permission::all());
+        $superAdmin = Role::firstOrCreate(['name' => 'Super Administrador']);
+        $superAdmin->syncPermissions(Permission::all());
 
         // 2. Administrador Operativo
-        $admin = Role::create(['name' => 'Administrador Operativo']);
-        $admin->givePermissionTo([
+        $admin = Role::firstOrCreate(['name' => 'Administrador Operativo']);
+        $admin->syncPermissions([
             'clients.view',
             'clients.create',
             'clients.edit',
@@ -120,8 +121,8 @@ class RolePermissionSeeder extends Seeder
         ]);
 
         // 3. Contador - Solo lectura financiera
-        $accountant = Role::create(['name' => 'Contador']);
-        $accountant->givePermissionTo([
+        $accountant = Role::firstOrCreate(['name' => 'Contador']);
+        $accountant->syncPermissions([
             'invoices.view',
             'invoices.download_pdf',
             'payments.view',
@@ -130,8 +131,8 @@ class RolePermissionSeeder extends Seeder
         ]);
 
         // 4. Soporte - Solo tickets
-        $support = Role::create(['name' => 'Soporte']);
-        $support->givePermissionTo([
+        $support = Role::firstOrCreate(['name' => 'Soporte']);
+        $support->syncPermissions([
             'tickets.view',
             'tickets.create',
             'tickets.edit',
@@ -142,7 +143,7 @@ class RolePermissionSeeder extends Seeder
         ]);
 
         // 5. Cliente - Acceso limitado a su información
-        $client = Role::create(['name' => 'Cliente']);
+        $client = Role::firstOrCreate(['name' => 'Cliente']);
         // Los permisos del cliente se manejan en Policies basadas en ownership
     }
 }

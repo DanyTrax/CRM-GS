@@ -33,6 +33,11 @@ Route::prefix('client')->name('client.')->group(function () {
     });
 });
 
+// Ruta de login para admin (pública)
+Route::get('/admin/login', function () {
+    return redirect()->route('client.login');
+})->name('admin.login');
+
 // Rutas del panel admin (requieren autenticación y permisos)
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:Super Administrador|Administrador Operativo|Contador|Soporte'])->group(function () {
     // Se definirán en routes/admin.php

@@ -34,14 +34,30 @@ npm install
 cp .env.example .env
 php artisan key:generate
 
-# Publicar migraciones de Spatie
+# Crear estructura de storage (IMPORTANTE)
+bash setup-storage.sh
+
+# Publicar migraciones de Spatie (IMPORTANTE)
 php artisan vendor:publish --provider="Spatie\Permission\PermissionServiceProvider"
 
 # Configurar base de datos en .env y ejecutar
+# Editar .env: DB_DATABASE, DB_USERNAME, DB_PASSWORD
 php artisan migrate --seed
 
 # Compilar assets
 npm run build
+```
+
+## ⚠️ Si aparece Error 500
+
+Ver guía completa en `SOLUCION_ERROR_500.md` o ejecutar:
+
+```bash
+bash setup-storage.sh
+php artisan config:clear
+php artisan cache:clear
+tail -50 storage/logs/laravel.log
+```
 ```
 
 ## Scripts de Ayuda

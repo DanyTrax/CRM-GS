@@ -13,8 +13,9 @@ class CheckClientAccess
     {
         $user = Auth::user();
         
-        // Si tiene rol de cliente, verificar que solo acceda a sus propios datos
-        if ($user->hasRole('Cliente')) {
+        // Si el usuario tiene rol de cliente, verificar acceso a sus propios datos
+        // Si es admin, permitir acceso a todo
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('Cliente')) {
             $client = $user->client;
             
             if (!$client) {
@@ -22,7 +23,7 @@ class CheckClientAccess
             }
 
             // Verificar acceso a recursos del cliente
-            $routeParams = $request->route()->parameters();
+            $routeParams = $request->route()?->parameters() ?? [];
             
             if (isset($routeParams['client'])) {
                 if ($routeParams['client']->id !== $client->id) {
@@ -31,6 +32,7 @@ class CheckClientAccess
             }
         }
 
+        // Si es admin o tiene otros roles, permitir acceso
         return $next($request);
     }
 }

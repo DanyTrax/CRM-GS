@@ -14,6 +14,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             \App\Http\Middleware\HandleImpersonation::class,
         ]);
+        
+        // Registrar alias para middleware
+        $middleware->alias([
+            'client' => \App\Http\Middleware\CheckClientAccess::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

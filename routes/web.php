@@ -29,8 +29,8 @@ Route::prefix('client')->name('client.')->group(function () {
     Route::get('/forgot-password', [ClientAuthController::class, 'showForgotPassword'])->name('forgot-password');
     Route::post('/forgot-password', [ClientAuthController::class, 'sendResetLink']);
     
-    // Rutas protegidas del cliente
-    Route::middleware(['auth', 'client'])->group(function () {
+    // Rutas protegidas del cliente (solo requieren autenticación, el middleware client es opcional)
+    Route::middleware(['auth'])->group(function () {
         Route::get('/dashboard', [ClientDashboardController::class, 'index'])->name('dashboard');
         Route::get('/services', [ClientDashboardController::class, 'services'])->name('services');
         Route::get('/invoices', [ClientDashboardController::class, 'invoices'])->name('invoices');

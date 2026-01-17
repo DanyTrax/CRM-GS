@@ -64,7 +64,7 @@ class InstallController extends Controller
             'host' => 'required',
             'database' => 'required',
             'username' => 'required',
-            'password' => 'required',
+            'password' => 'nullable',
         ]);
 
         try {
@@ -78,15 +78,21 @@ class InstallController extends Controller
             DB::connection()->getPdo();
 
             // Guardar en .env
-            $envContent = file_get_contents(base_path('.env.example'));
-            $envContent = str_replace('DB_HOST=127.0.0.1', "DB_HOST={$request->host}", $envContent);
-            $envContent = str_replace('DB_DATABASE=crm_gs', "DB_DATABASE={$request->database}", $envContent);
-            $envContent = str_replace('DB_USERNAME=root', "DB_USERNAME={$request->username}", $envContent);
-            $envContent = str_replace('DB_PASSWORD=', "DB_PASSWORD={$request->password}", $envContent);
-
             if (!file_exists(base_path('.env'))) {
-                file_put_contents(base_path('.env'), $envContent);
+                $envContent = file_get_contents(base_path('.env.example'));
+            } else {
+                $envContent = file_get_contents(base_path('.env'));
             }
+            
+            $password = $request->password ?: '';
+            
+            // Reemplazar valores de base de datos
+            $envContent = preg_replace('/^DB_HOST=.*/m', "DB_HOST={$request->host}", $envContent);
+            $envContent = preg_replace('/^DB_DATABASE=.*/m', "DB_DATABASE={$request->database}", $envContent);
+            $envContent = preg_replace('/^DB_USERNAME=.*/m', "DB_USERNAME={$request->username}", $envContent);
+            $envContent = preg_replace('/^DB_PASSWORD=.*/m', "DB_PASSWORD={$password}", $envContent);
+
+            file_put_contents(base_path('.env'), $envContent);
 
             return response()->json(['success' => true]);
         } catch (\Exception $e) {
@@ -130,15 +136,25 @@ class InstallController extends Controller
     public function runMigrations(Request $request)
     {
         try {
+            // Limpiar configuración antes de ejecutar migraciones
+            \Illuminate\Support\Facades\Artisan::call('config:clear');
+            
+            // Ejecutar migraciones
             Artisan::call('migrate', ['--force' => true]);
-            Artisan::call('db:seed', ['--force' => true]);
-            Artisan::call('key:generate', ['--force' => true]);
+            
+            // Ejecutar seeders (esto creará los roles)
+            Artisan::call('db:seed', ['--force' => true, '--class' => 'RolePermissionSeeder']);
+            
+            // Asegurar que APP_KEY esté generado
+            if (empty(env('APP_KEY'))) {
+                Artisan::call('key:generate', ['--force' => true]);
+            }
 
             return response()->json(['success' => true]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage(),
+                'message' => $e->getMessage() . ' - ' . $e->getFile() . ':' . $e->getLine(),
             ], 400);
         }
     }

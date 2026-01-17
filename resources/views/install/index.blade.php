@@ -45,9 +45,19 @@
                 </form>
             </div>
 
-            <!-- Paso 3: Administrador -->
+            <!-- Paso 3: Instalar Sistema -->
             <div id="step-3" class="step hidden">
-                <h2 class="text-2xl font-semibold mb-4">Paso 3: Crear Usuario Administrador</h2>
+                <h2 class="text-2xl font-semibold mb-4">Paso 3: Instalar Sistema</h2>
+                <p class="mb-4">Ejecutando migraciones y seeders...</p>
+                <div id="install-progress" class="mb-4"></div>
+                <button onclick="runInstallation()" class="bg-green-500 text-white px-4 py-2 rounded">
+                    Instalar
+                </button>
+            </div>
+
+            <!-- Paso 4: Administrador -->
+            <div id="step-4" class="step hidden">
+                <h2 class="text-2xl font-semibold mb-4">Paso 4: Crear Usuario Administrador</h2>
                 <form id="admin-form" class="space-y-4">
                     <div>
                         <label class="block mb-2">Nombre</label>
@@ -66,16 +76,6 @@
                     </button>
                 </form>
             </div>
-
-            <!-- Paso 4: Instalar -->
-            <div id="step-4" class="step hidden">
-                <h2 class="text-2xl font-semibold mb-4">Paso 4: Instalar Sistema</h2>
-                <p class="mb-4">Ejecutando migraciones y seeders...</p>
-                <div id="install-progress" class="mb-4"></div>
-                <button onclick="runInstallation()" class="bg-green-500 text-white px-4 py-2 rounded">
-                    Instalar
-                </button>
-            </div>
         </div>
     </div>
 </div>
@@ -83,18 +83,35 @@
 <script>
 let currentStep = 1;
 
+// Obtener token CSRF
+function getCSRFToken() {
+    const token = document.querySelector('meta[name="csrf-token"]');
+    return token ? token.getAttribute('content') : '';
+}
+
 function checkRequirements() {
-    fetch('/install/requirements', { method: 'POST' })
-        .then(r => r.json())
-        .then(data => {
-            const div = document.getElementById('requirements-check');
-            if (data.passed) {
-                div.innerHTML = '<p class="text-green-600">✓ Todos los requisitos están cumplidos</p>';
-                nextStep();
-            } else {
-                div.innerHTML = '<p class="text-red-600">✗ Algunos requisitos no se cumplen</p>';
-            }
-        });
+    fetch('/install/requirements', { 
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': getCSRFToken(),
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(r => r.json())
+    .then(data => {
+        const div = document.getElementById('requirements-check');
+        if (data.passed) {
+            div.innerHTML = '<p class="text-green-600">✓ Todos los requisitos están cumplidos</p>';
+            nextStep();
+        } else {
+            div.innerHTML = '<p class="text-red-600">✗ Algunos requisitos no se cumplen</p>';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al verificar requisitos: ' + error.message);
+    });
 }
 
 function nextStep() {
@@ -106,47 +123,103 @@ function nextStep() {
 document.getElementById('database-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
+    
+    // Agregar token CSRF
+    formData.append('_token', getCSRFToken());
+    
     fetch('/install/database', {
         method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': getCSRFToken(),
+            'Accept': 'application/json'
+        },
         body: formData
     })
-    .then(r => r.json())
+    .then(r => {
+        if (!r.ok) {
+            return r.json().then(data => Promise.reject(data));
+        }
+        return r.json();
+    })
     .then(data => {
         if (data.success) {
+            alert('✓ Conexión a la base de datos exitosa');
             nextStep();
         } else {
-            alert('Error: ' + data.message);
+            alert('Error: ' + (data.message || 'Error desconocido'));
         }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error: ' + (error.message || 'No se pudo conectar a la base de datos'));
     });
 });
 
 document.getElementById('admin-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
+    
+    // Agregar token CSRF
+    formData.append('_token', getCSRFToken());
+    
     fetch('/install/admin', {
         method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': getCSRFToken(),
+            'Accept': 'application/json'
+        },
         body: formData
     })
-    .then(r => r.json())
+    .then(r => {
+        if (!r.ok) {
+            return r.json().then(data => Promise.reject(data));
+        }
+        return r.json();
+    })
     .then(data => {
         if (data.success) {
-            nextStep();
+            alert('✓ Usuario administrador creado exitosamente');
+            window.location.href = '/admin';
         } else {
-            alert('Error: ' + data.message);
+            alert('Error: ' + (data.message || 'Error desconocido'));
         }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error: ' + (error.message || 'No se pudo crear el usuario administrador'));
     });
 });
 
 function runInstallation() {
-    fetch('/install/run', { method: 'POST' })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                window.location.href = '/admin';
-            } else {
-                alert('Error: ' + data.message);
-            }
-        });
+    const progressDiv = document.getElementById('install-progress');
+    progressDiv.innerHTML = '<p class="text-blue-600">Ejecutando migraciones...</p>';
+    
+    fetch('/install/run', { 
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': getCSRFToken(),
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(r => {
+        if (!r.ok) {
+            return r.json().then(data => Promise.reject(data));
+        }
+        return r.json();
+    })
+    .then(data => {
+        if (data.success) {
+            progressDiv.innerHTML = '<p class="text-green-600">✓ Instalación completada exitosamente</p>';
+            nextStep();
+        } else {
+            progressDiv.innerHTML = '<p class="text-red-600">✗ Error: ' + (data.message || 'Error desconocido') + '</p>';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        progressDiv.innerHTML = '<p class="text-red-600">✗ Error: ' + (error.message || 'Error al ejecutar la instalación') + '</p>';
+    });
 }
 </script>
 @endsection

@@ -26,13 +26,24 @@ class Settings extends Page
     
     public function mount(): void
     {
-        $this->form->fill([
-            'trm_base' => Setting::get('trm_base', 4000),
-            'bold_spread_percentage' => Setting::get('bold_spread_percentage', 3),
-            'bold_webhook_secret' => Setting::get('bold_webhook_secret', ''),
-            'backup_enabled' => Setting::get('backup_enabled', true),
-            'google_drive_folder_id' => Setting::get('google_drive_folder_id', ''),
-        ]);
+        try {
+            $this->form->fill([
+                'trm_base' => Setting::get('trm_base', 4000),
+                'bold_spread_percentage' => Setting::get('bold_spread_percentage', 3),
+                'bold_webhook_secret' => Setting::get('bold_webhook_secret', ''),
+                'backup_enabled' => Setting::get('backup_enabled', true),
+                'google_drive_folder_id' => Setting::get('google_drive_folder_id', ''),
+            ]);
+        } catch (\Exception $e) {
+            // Si hay error al cargar settings, usar valores por defecto
+            $this->form->fill([
+                'trm_base' => 4000,
+                'bold_spread_percentage' => 3,
+                'bold_webhook_secret' => '',
+                'backup_enabled' => true,
+                'google_drive_folder_id' => '',
+            ]);
+        }
     }
     
     public function form(Form $form): Form
@@ -80,22 +91,30 @@ class Settings extends Page
     
     public function save(): void
     {
-        $data = $this->form->getState();
-        
-        foreach ($data as $key => $value) {
-            $type = match($key) {
-                'trm_base', 'bold_spread_percentage' => 'integer',
-                'backup_enabled' => 'boolean',
-                default => 'string',
-            };
+        try {
+            $data = $this->form->getState();
             
-            Setting::set($key, $value, $type);
+            foreach ($data as $key => $value) {
+                $type = match($key) {
+                    'trm_base', 'bold_spread_percentage' => 'integer',
+                    'backup_enabled' => 'boolean',
+                    default => 'string',
+                };
+                
+                Setting::set($key, $value, $type);
+            }
+            
+            Notification::make()
+                ->title('Configuración guardada exitosamente')
+                ->success()
+                ->send();
+        } catch (\Exception $e) {
+            Notification::make()
+                ->title('Error al guardar configuración')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
         }
-        
-        Notification::make()
-            ->title('Configuración guardada exitosamente')
-            ->success()
-            ->send();
     }
     
     protected function getFormActions(): array

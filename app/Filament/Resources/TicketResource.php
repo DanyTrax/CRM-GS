@@ -54,10 +54,11 @@ class TicketResource extends Resource
                         
                         Forms\Components\TextInput::make('ticket_number')
                             ->label('Número de Ticket')
-                            ->default(fn () => 'TKT-' . str_pad((Ticket::max('id') ?? 0) + 1, 6, '0', STR_PAD_LEFT))
+                            ->default(fn () => 'TKT-' . str_pad((Ticket::withTrashed()->max('id') ?? 0) + 1, 6, '0', STR_PAD_LEFT))
                             ->required()
-                            ->unique(ignoreRecord: true)
-                            ->maxLength(255),
+                            ->unique(ignoreRecord: true, table: 'tickets')
+                            ->maxLength(255)
+                            ->disabled(fn ($record) => $record !== null),
                         
                         Forms\Components\TextInput::make('subject')
                             ->label('Asunto')

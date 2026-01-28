@@ -27,6 +27,8 @@ class InvoiceResource extends Resource
     protected static ?string $navigationGroup = 'Facturación';
     
     protected static ?int $navigationSort = 1;
+    
+    protected static ?string $slug = 'invoices';
 
     public static function canViewAny(): bool
     {
@@ -103,9 +105,14 @@ class InvoiceResource extends Resource
                             ->default('COP')
                             ->required()
                             ->live()
-                            ->afterStateUpdated(function ($state, Forms\Set $set) {
+                            ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
                                 if ($state === 'USD') {
-                                    // Si cambia a USD, limpiar TRM snapshot
+                                    // Calcular TRM automáticamente desde settings
+                                    $trmBase = \App\Models\Setting::get('trm_base', 4000);
+                                    $spread = \App\Models\Setting::get('bold_spread_percentage', 3);
+                                    $trmWithSpread = $trmBase * (1 + ($spread / 100));
+                                    $set('trm_snapshot', round($trmWithSpread, 4));
+                                } else {
                                     $set('trm_snapshot', null);
                                 }
                             }),
@@ -115,7 +122,12 @@ class InvoiceResource extends Resource
                             ->numeric()
                             ->visible(fn (Forms\Get $get) => $get('currency') === 'USD')
                             ->step(0.0001)
-                            ->helperText('Tasa de cambio usada para conversión USD→COP'),
+                            ->default(fn (Forms\Get $get) => 
+                                $get('currency') === 'USD' 
+                                    ? round(\App\Models\Setting::get('trm_base', 4000) * (1 + (\App\Models\Setting::get('bold_spread_percentage', 3) / 100)), 4)
+                                    : null
+                            )
+                            ->helperText('Tasa de cambio con spread aplicado (se calcula automáticamente)'),
                     ])->columns(3),
                 
                 Forms\Components\Section::make('Fechas')
@@ -238,11 +250,13 @@ class InvoiceResource extends Resource
                     ->preload(),
             ])
             ->actions([
+                Tables\Actions\ViewAction::make(),
                 Tables\Actions\Action::make('pdf')
                     ->label('PDF')
                     ->icon('heroicon-o-document-arrow-down')
                     ->url(fn (Invoice $record) => route('admin.invoices.pdf', $record))
-                    ->openUrlInNewTab(),
+                    ->openUrlInNewTab()
+                    ->color('success'),
                 
                 Tables\Actions\Action::make('mark_paid')
                     ->label('Marcar Pagada')
@@ -250,7 +264,13 @@ class InvoiceResource extends Resource
                     ->color('success')
                     ->visible(fn (Invoice $record) => $record->status !== 'pagada')
                     ->requiresConfirmation()
-                    ->action(fn (Invoice $record) => $record->markAsPaid()),
+                    ->action(function (Invoice $record) {
+                        $record->markAsPaid();
+                        \Filament\Notifications\Notification::make()
+                            ->title('Factura marcada como pagada')
+                            ->success()
+                            ->send();
+                    }),
                 
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
@@ -275,6 +295,7 @@ class InvoiceResource extends Resource
         return [
             'index' => Pages\ListInvoices::route('/'),
             'create' => Pages\CreateInvoice::route('/create'),
+            'view' => Pages\ViewInvoice::route('/{record}'),
             'edit' => Pages\EditInvoice::route('/{record}/edit'),
         ];
     }

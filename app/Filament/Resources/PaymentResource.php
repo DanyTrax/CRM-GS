@@ -237,7 +237,6 @@ class PaymentResource extends Resource
     
     public static function shouldRegisterNavigation(): bool
     {
-        // Temporalmente ocultar de la navegación hasta que las rutas se registren correctamente
-        return false;
+        return true;
     }
 }

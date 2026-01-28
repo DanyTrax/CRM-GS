@@ -93,4 +93,46 @@ class Invoice extends Model
     {
         return $this->status === 'pagada';
     }
+
+    /**
+     * Convertir monto USD a COP usando TRM + Spread
+     */
+    public function convertToCOP(): ?float
+    {
+        if ($this->currency !== 'USD' || !$this->trm_snapshot) {
+            return null;
+        }
+
+        return round($this->total_amount * $this->trm_snapshot, 2);
+    }
+
+    /**
+     * Obtener monto en COP (si es USD, convertir; si es COP, retornar directo)
+     */
+    public function getAmountInCOP(): float
+    {
+        if ($this->currency === 'COP') {
+            return $this->total_amount;
+        }
+
+        return $this->convertToCOP() ?? 0;
+    }
+
+    /**
+     * Obtener monto total pagado
+     */
+    public function getTotalPaid(): float
+    {
+        return $this->payments()
+            ->whereNotNull('approved_at')
+            ->sum('amount_paid');
+    }
+
+    /**
+     * Verificar si está completamente pagada
+     */
+    public function isFullyPaid(): bool
+    {
+        return $this->getTotalPaid() >= $this->getAmountInCOP();
+    }
 }

@@ -4,10 +4,40 @@ namespace App\Filament\Resources\InvoiceResource\Pages;
 
 use App\Filament\Resources\InvoiceResource;
 use Filament\Resources\Pages\CreateRecord;
+use Filament\Notifications\Notification;
 
 class CreateInvoice extends CreateRecord
 {
     protected static string $resource = InvoiceResource::class;
+    
+    public function mount(): void
+    {
+        parent::mount();
+        
+        // Si viene desde un servicio, pre-llenar datos
+        $serviceId = request()->get('service_id');
+        if ($serviceId) {
+            $service = \App\Models\Service::find($serviceId);
+            if ($service) {
+                $this->form->fill([
+                    'client_id' => $service->client_id,
+                    'total_amount' => $service->price,
+                    'currency' => $service->currency,
+                    'concept' => "Facturación de servicio: {$service->name}",
+                ]);
+                
+                // Si es USD, calcular TRM automáticamente
+                if ($service->currency === 'USD') {
+                    $trmBase = \App\Models\Setting::get('trm_base', 4000);
+                    $spread = \App\Models\Setting::get('bold_spread_percentage', 3);
+                    $trmWithSpread = $trmBase * (1 + ($spread / 100));
+                    $this->form->fill([
+                        'trm_snapshot' => round($trmWithSpread, 4),
+                    ]);
+                }
+            }
+        }
+    }
     
     protected function mutateFormDataBeforeCreate(array $data): array
     {
@@ -17,6 +47,26 @@ class CreateInvoice extends CreateRecord
             $data['invoice_number'] = \App\Models\Invoice::generateInvoiceNumber($template);
         }
         
+        // Si es USD y no tiene TRM, calcularla
+        if ($data['currency'] === 'USD' && empty($data['trm_snapshot'])) {
+            $trmBase = \App\Models\Setting::get('trm_base', 4000);
+            $spread = \App\Models\Setting::get('bold_spread_percentage', 3);
+            $data['trm_snapshot'] = round($trmBase * (1 + ($spread / 100)), 4);
+        }
+        
         return $data;
+    }
+    
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('view', ['record' => $this->record]);
+    }
+    
+    protected function getCreatedNotification(): ?Notification
+    {
+        return Notification::make()
+            ->success()
+            ->title('Factura creada')
+            ->body('La factura ha sido creada exitosamente.');
     }
 }

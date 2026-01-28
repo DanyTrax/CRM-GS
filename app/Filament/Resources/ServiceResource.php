@@ -197,13 +197,21 @@ class ServiceResource extends Resource
                     ),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\Action::make('generate_invoice')
+                    ->label('Generar Factura')
+                    ->icon('heroicon-o-document-plus')
+                    ->color('primary')
+                    ->url(fn (Service $record) => route('filament.admin.resources.invoices.create', ['service_id' => $record->id]))
+                    ->visible(fn (Service $record) => $record->status === 'activo'),
+                
                 Tables\Actions\Action::make('renew')
                     ->label('Renovar')
                     ->icon('heroicon-o-arrow-path')
                     ->color('success')
                     ->requiresConfirmation()
                     ->action(fn (Service $record) => $record->renew()),
+                
+                Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([

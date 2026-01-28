@@ -83,19 +83,13 @@ Route::post('/logout', function () {
 // Rutas protegidas - Admin
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
     
-    // Dashboard
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    // Dashboard (solo si no usas Filament Dashboard)
+    // Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     
-    // Clientes
-    Route::resource('clients', ClientController::class)->names('clients');
+    // NOTA: Clientes, Servicios, Facturas ahora se manejan con Filament Resources
+    // Las rutas resource tradicionales están comentadas para evitar conflictos
     
-    // Servicios
-    Route::resource('services', ServiceController::class)->names('services');
-    Route::post('/services/{service}/renew', [ServiceController::class, 'renew'])->name('services.renew');
-    Route::post('/services/{service}/change-cycle', [ServiceController::class, 'changeCycle'])->name('services.change-cycle');
-    
-    // Facturas
-    Route::resource('invoices', InvoiceController::class)->names('invoices');
+    // Rutas adicionales que no están en Filament
     Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('invoices.pdf');
     Route::post('/invoices/{invoice}/mark-paid', [InvoiceController::class, 'markPaid'])->name('invoices.mark-paid');
     

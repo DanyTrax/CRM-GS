@@ -102,15 +102,16 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
         Route::post('/{payment}/reject', function () { /* Implementar */ })->name('reject');
     });
     
-    // Tickets
-    Route::prefix('tickets')->name('tickets.')->group(function () {
-        Route::get('/', function () { return view('admin.tickets.index'); })->name('index');
-        Route::get('/create', function () { return view('admin.tickets.create'); })->name('create');
-        Route::post('/', function () { /* Implementar */ })->name('store');
-        Route::get('/{ticket}', function () { return view('admin.tickets.show'); })->name('show');
-        Route::post('/{ticket}/messages', function () { /* Implementar */ })->name('messages.store');
-        Route::post('/{ticket}/close', function () { /* Implementar */ })->name('close');
-    });
+    // NOTA: Tickets ahora se maneja con Filament TicketResource
+    // Las rutas tradicionales están comentadas para evitar conflictos
+    // Route::prefix('tickets')->name('tickets.')->group(function () {
+    //     Route::get('/', function () { return view('admin.tickets.index'); })->name('index');
+    //     Route::get('/create', function () { return view('admin.tickets.create'); })->name('create');
+    //     Route::post('/', function () { /* Implementar */ })->name('store');
+    //     Route::get('/{ticket}', function () { return view('admin.tickets.show'); })->name('show');
+    //     Route::post('/{ticket}/messages', function () { /* Implementar */ })->name('messages.store');
+    //     Route::post('/{ticket}/close', function () { /* Implementar */ })->name('close');
+    // });
     
     // Correos (Interceptor)
     Route::prefix('emails')->name('emails.')->group(function () {

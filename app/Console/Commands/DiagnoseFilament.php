@@ -68,7 +68,7 @@ class DiagnoseFilament extends Command
     {
         $results = [];
         
-        $providersPath = bootstrap_path('providers.php');
+        $providersPath = base_path('bootstrap/providers.php');
         if (File::exists($providersPath)) {
             $providers = require $providersPath;
             $results['providers.php'] = [

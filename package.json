@@ -1,0 +1,19 @@
+{
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "NODE_OPTIONS='--max-old-space-size=2048' vite build",
+        "build:lowmem": "NODE_OPTIONS='--max-old-space-size=1024' vite build"
+    },
+    "devDependencies": {
+        "axios": "^1.6.4",
+        "laravel-vite-plugin": "^1.0",
+        "vite": "^5.0"
+    },
+    "dependencies": {
+        "tailwindcss": "^3.4.0",
+        "autoprefixer": "^10.4.16",
+        "postcss": "^8.4.32"
+    }
+}

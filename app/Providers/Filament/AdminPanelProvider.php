@@ -61,6 +61,7 @@ class AdminPanelProvider extends PanelProvider
             ->navigationGroups([
                 'Gestión',
                 'Facturación',
+                'Soporte',
                 'Configuración',
             ]);
     }

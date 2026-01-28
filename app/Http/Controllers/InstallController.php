@@ -250,52 +250,93 @@ class InstallController extends Controller
                 Artisan::call('key:generate', ['--force' => true]);
             }
 
-            // 3. Ejecutar migraciones
-            Artisan::call('migrate', ['--force' => true]);
+            // 3. Verificar si las tablas ya existen
+            $tablesExist = false;
+            try {
+                $tables = DB::select('SHOW TABLES');
+                $tablesExist = count($tables) > 0;
+            } catch (\Exception $e) {
+                // Si hay error al verificar, continuar con migraciones
+                $tablesExist = false;
+            }
 
-            // 4. Ejecutar seeders
-            Artisan::call('db:seed', ['--force' => true, '--class' => 'DatabaseSeeder']);
+            // 4. Ejecutar migraciones (solo las pendientes si las tablas ya existen)
+            if ($tablesExist) {
+                // Si las tablas ya existen, ejecutar solo migraciones pendientes
+                Artisan::call('migrate', ['--force' => true]);
+            } else {
+                // Si no hay tablas, ejecutar migraciones desde cero
+                Artisan::call('migrate', ['--force' => true]);
+            }
 
-            // 5. Crear usuario administrador
+            // 5. Ejecutar seeders (solo si no hay datos)
+            try {
+                $userCount = User::count();
+                $roleCount = Role::count();
+                
+                // Solo ejecutar seeders si no hay datos
+                if ($userCount === 0 || $roleCount === 0) {
+                    Artisan::call('db:seed', ['--force' => true, '--class' => 'DatabaseSeeder']);
+                }
+            } catch (\Exception $e) {
+                // Si hay error, intentar ejecutar seeders de todas formas
+                Artisan::call('db:seed', ['--force' => true, '--class' => 'DatabaseSeeder']);
+            }
+
+            // 6. Crear usuario administrador (solo si no existe)
             $adminName = session('admin_name');
             $adminEmail = session('admin_email');
             $adminPassword = session('admin_password');
 
             if ($adminName && $adminEmail && $adminPassword) {
-                $superAdminRole = Role::where('slug', 'super-admin')->first();
+                // Verificar si el usuario ya existe
+                $existingUser = User::where('email', $adminEmail)->first();
                 
-                if ($superAdminRole) {
-                    $user = User::create([
-                        'name' => $adminName,
-                        'email' => $adminEmail,
+                if (!$existingUser) {
+                    $superAdminRole = Role::where('slug', 'super-admin')->first();
+                    
+                    if ($superAdminRole) {
+                        User::create([
+                            'name' => $adminName,
+                            'email' => $adminEmail,
+                            'password' => Hash::make($adminPassword),
+                            'role_id' => $superAdminRole->id,
+                            'email_verified_at' => now(),
+                        ]);
+                    }
+                } else {
+                    // Si el usuario ya existe, actualizar la contraseña
+                    $existingUser->update([
                         'password' => Hash::make($adminPassword),
-                        'role_id' => $superAdminRole->id,
-                        'email_verified_at' => now(),
                     ]);
                 }
             }
 
-            // 6. Crear directorios necesarios
+            // 7. Crear directorios necesarios
             $this->createRequiredDirectories();
 
-            // 7. Crear archivo de instalación completada
+            // 8. Crear archivo de instalación completada
             File::put(storage_path('app/.installed'), now()->toDateTimeString());
 
-            // 8. Limpiar caché
-            Artisan::call('config:clear');
-            Artisan::call('cache:clear');
+            // 9. Limpiar caché (con manejo de errores)
+            try {
+                Artisan::call('config:clear');
+                Artisan::call('cache:clear');
+            } catch (\Exception $e) {
+                // Ignorar errores de caché
+            }
 
             return response()->json([
                 'success' => true,
                 'message' => 'Instalación completada exitosamente',
                 'redirect' => route('login'),
-            ]);
+            ], 200, [], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Error durante la instalación: ' . $e->getMessage(),
                 'trace' => config('app.debug') ? $e->getTraceAsString() : null,
-            ], 500);
+            ], 500, [], JSON_UNESCAPED_UNICODE);
         }
     }
 

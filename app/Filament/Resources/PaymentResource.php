@@ -228,4 +228,14 @@ class PaymentResource extends Resource
             'edit' => Pages\EditPayment::route('/{record}/edit'),
         ];
     }
+    
+    public static function canViewAny(): bool
+    {
+        return true; // Temporalmente permitir a todos, luego agregar permisos
+    }
+    
+    public static function shouldRegisterNavigation(): bool
+    {
+        return true;
+    }
 }

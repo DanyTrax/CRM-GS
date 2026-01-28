@@ -26,6 +26,11 @@ class ClientResource extends Resource
     {
         return true;
     }
+    
+    public static function canViewAny(): bool
+    {
+        return true; // Temporalmente permitir a todos, luego agregar permisos
+    }
 
     public static function form(Form $form): Form
     {

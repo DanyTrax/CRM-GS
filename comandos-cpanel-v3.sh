@@ -5,13 +5,27 @@
 
 echo "🔧 Configurando CRM Services con FilamentPHP v3..."
 
-# 1. Actualizar dependencias (sin dev dependencies en producción)
-echo "📦 Instalando dependencias..."
-composer install --no-dev --optimize-autoloader
+# 1. Actualizar dependencias (actualizar lock file si es necesario)
+echo "📦 Actualizando dependencias..."
+echo "   (Si el lock file está desactualizado, se actualizará automáticamente)"
+
+# Primero intentar install, si falla, hacer update
+if ! composer install --no-dev --optimize-autoloader 2>&1 | grep -q "lock file is not up to date"; then
+    composer install --no-dev --optimize-autoloader
+else
+    echo "⚠️  Lock file desactualizado. Actualizando..."
+    composer update --no-dev --optimize-autoloader --with-all-dependencies
+fi
 
 if [ $? -ne 0 ]; then
     echo "❌ Error al instalar dependencias"
-    exit 1
+    echo "💡 Intentando actualizar lock file..."
+    composer update --no-dev --optimize-autoloader --with-all-dependencies
+    
+    if [ $? -ne 0 ]; then
+        echo "❌ Error crítico. Verifica los logs arriba."
+        exit 1
+    fi
 fi
 
 # 2. Publicar assets de Filament
@@ -34,7 +48,6 @@ php artisan route:clear 2>/dev/null || true
 php artisan view:clear 2>/dev/null || true
 
 # NO usar optimize:clear ni config:cache en producción si Collision no está instalado
-# En su lugar, solo limpiar manualmente
 echo "📝 Nota: Si necesitas optimizar, ejecuta manualmente después de verificar que todo funciona"
 
 # 6. Permisos

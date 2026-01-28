@@ -78,14 +78,8 @@ class AdminPanelProvider extends PanelProvider
                     return null;
                 }
             })
-            ->favicon(function () {
-                try {
-                    $logo = \App\Models\Setting::get('company_logo_light', null);
-                    return $logo ? asset('storage/' . $logo) : null;
-                } catch (\Exception $e) {
-                    return null;
-                }
-            })
+            ->brandLogoHeight('auto')
+            ->brandLogoWidth('auto')
             ->sidebarCollapsibleOnDesktop()
             ->navigationGroups([
                 'Gestión',
@@ -93,6 +87,10 @@ class AdminPanelProvider extends PanelProvider
                 'Soporte',
                 'Mensajería',
                 'Configuración',
-            ]);
+            ])
+            ->renderHook(
+                'styles.end',
+                fn () => view('filament.hooks.custom-brand-styles')
+            );
     }
 }

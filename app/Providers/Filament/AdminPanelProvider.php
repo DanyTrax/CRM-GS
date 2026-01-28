@@ -78,6 +78,19 @@ class AdminPanelProvider extends PanelProvider
                     return null;
                 }
             })
+            ->favicon(function () {
+                try {
+                    $favicon = \App\Models\Setting::get('company_favicon', null);
+                    if ($favicon) {
+                        return asset('storage/' . $favicon);
+                    }
+                    // Fallback al logo claro si no hay favicon
+                    $logo = \App\Models\Setting::get('company_logo_light', null);
+                    return $logo ? asset('storage/' . $logo) : null;
+                } catch (\Exception $e) {
+                    return null;
+                }
+            })
             ->sidebarCollapsibleOnDesktop()
             ->navigationGroups([
                 'Gestión',

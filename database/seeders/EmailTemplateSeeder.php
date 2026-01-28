@@ -299,9 +299,7 @@ class EmailTemplateSeeder extends Seeder
         <p>Estimado/a <strong>{{client_name}}</strong>,</p>
         <p>Confirmamos la cancelación de tu servicio <strong>{{service_name}}</strong>.</p>
         <p><strong>Fecha de cancelación:</strong> {{cancellation_date}}</p>
-        @if(reason)
         <p><strong>Motivo:</strong> {{reason}}</p>
-        @endif
         <p>Si tienes alguna pregunta o necesitas reactivar el servicio, contáctanos.</p>
         <p>El equipo de {{company_name}}</p>';
     }
@@ -311,9 +309,7 @@ class EmailTemplateSeeder extends Seeder
         return '<h2>Servicio Cancelado</h2>
         <p>El servicio <strong>{{service_name}}</strong> del cliente <strong>{{client_name}}</strong> ha sido cancelado.</p>
         <p><strong>Fecha de cancelación:</strong> {{cancellation_date}}</p>
-        @if(reason)
         <p><strong>Motivo:</strong> {{reason}}</p>
-        @endif
         <p>Por favor, verifica que todos los procesos relacionados se hayan completado correctamente.</p>';
     }
 }

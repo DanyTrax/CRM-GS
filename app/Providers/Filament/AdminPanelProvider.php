@@ -63,6 +63,7 @@ class AdminPanelProvider extends PanelProvider
                 'Gestión',
                 'Facturación',
                 'Soporte',
+                'Mensajería',
                 'Configuración',
             ]);
     }

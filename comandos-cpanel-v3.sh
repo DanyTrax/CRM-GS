@@ -5,6 +5,12 @@
 
 echo "🔧 Configurando CRM Services con FilamentPHP v3..."
 
+# 0. Crear estructura de directorios
+echo "📁 Creando estructura de directorios..."
+mkdir -p storage/app/backups storage/app/public storage/framework/cache storage/framework/sessions storage/framework/views storage/logs
+mkdir -p bootstrap/cache
+chmod -R 755 storage bootstrap/cache public 2>/dev/null || true
+
 # 1. Actualizar dependencias (actualizar lock file si es necesario)
 echo "📦 Actualizando dependencias..."
 echo "   (Si el lock file está desactualizado, se actualizará automáticamente)"

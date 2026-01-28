@@ -33,6 +33,14 @@ class Payment extends Model
     }
 
     /**
+     * Medio de pago asociado
+     */
+    public function paymentMethod()
+    {
+        return $this->belongsTo(PaymentMethod::class, 'method', 'slug');
+    }
+
+    /**
      * Aprobar pago
      */
     public function approve(): void
@@ -52,7 +60,28 @@ class Payment extends Model
      */
     public function isBoldPayment(): bool
     {
-        return $this->method === 'Bold';
+        return $this->method === 'bold';
+    }
+
+    /**
+     * Verificar si requiere aprobación manual
+     */
+    public function requiresApproval(): bool
+    {
+        $paymentMethod = $this->paymentMethod;
+        return $paymentMethod ? $paymentMethod->requires_approval : true;
+    }
+
+    /**
+     * Calcular comisión del medio de pago
+     */
+    public function getFee(): float
+    {
+        $paymentMethod = $this->paymentMethod;
+        if ($paymentMethod) {
+            return $paymentMethod->calculateFee((float) $this->amount_paid);
+        }
+        return 0.0;
     }
 
     /**

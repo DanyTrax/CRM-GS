@@ -254,7 +254,7 @@ class EmailTemplateResource extends Resource
                     ->icon('heroicon-o-eye')
                     ->color('gray')
                     ->modalContent(fn (EmailTemplate $record) => view('filament.partials.email-preview', ['template' => $record]))
-                    ->modalHeading('Vista Previa: ' . $record->name)
+                    ->modalHeading(fn (EmailTemplate $record) => 'Vista Previa: ' . $record->name)
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Cerrar'),
                 

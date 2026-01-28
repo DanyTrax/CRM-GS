@@ -276,11 +276,23 @@ class InstallController extends Controller
                 $usersTableExists = false;
             }
 
-            // 5. Ejecutar migraciones
-            if ($usersTableExists && $migrationsTableExists && $migrationsCount > 0) {
+            // 5. Verificar si la tabla users tiene la estructura correcta
+            $usersTableNeedsUpdate = false;
+            if ($usersTableExists) {
+                try {
+                    $columns = DB::select('SHOW COLUMNS FROM users');
+                    $columnNames = array_column($columns, 'Field');
+                    $usersTableNeedsUpdate = !in_array('role_id', $columnNames);
+                } catch (\Exception $e) {
+                    $usersTableNeedsUpdate = false;
+                }
+            }
+
+            // 6. Ejecutar migraciones
+            if ($usersTableExists && $migrationsTableExists && $migrationsCount > 0 && !$usersTableNeedsUpdate) {
                 // Si las tablas ya existen y hay migraciones registradas, ejecutar solo pendientes
                 Artisan::call('migrate', ['--force' => true]);
-            } elseif ($usersTableExists && !$migrationsTableExists) {
+            } elseif ($usersTableExists && (!$migrationsTableExists || $usersTableNeedsUpdate)) {
                 // Si las tablas existen pero no hay tabla migrations, crear la tabla migrations primero
                 // y luego marcar las migraciones como ejecutadas
                 try {

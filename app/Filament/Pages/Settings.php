@@ -51,9 +51,18 @@ class Settings extends Page implements HasForms
                 'exchange_tolerance_type' => Setting::get('exchange_tolerance_type', 'percentage'),
                 'exchange_tolerance_value' => Setting::get('exchange_tolerance_value', 0),
                 'exchange_rounding' => Setting::get('exchange_rounding', 'up'),
-                'bold_webhook_secret' => Setting::get('bold_webhook_secret', ''),
                 'backup_enabled' => Setting::get('backup_enabled', true),
                 'google_drive_folder_id' => Setting::get('google_drive_folder_id', ''),
+                // Configuración de empresa
+                'company_name' => Setting::get('company_name', 'DOWGROUP'),
+                'company_tax_id' => Setting::get('company_tax_id', ''),
+                'company_email' => Setting::get('company_email', ''),
+                'company_phone' => Setting::get('company_phone', ''),
+                'company_address' => Setting::get('company_address', ''),
+                'company_website' => Setting::get('company_website', ''),
+                'company_logo_light' => Setting::get('company_logo_light', null),
+                'company_logo_dark' => Setting::get('company_logo_dark', null),
+                'session_timeout' => Setting::get('session_timeout', 10),
             ]);
         } catch (\Exception $e) {
             // Si hay error al cargar settings, usar valores por defecto
@@ -64,9 +73,17 @@ class Settings extends Page implements HasForms
                 'exchange_tolerance_type' => 'percentage',
                 'exchange_tolerance_value' => 0,
                 'exchange_rounding' => 'up',
-                'bold_webhook_secret' => '',
                 'backup_enabled' => true,
                 'google_drive_folder_id' => '',
+                'company_name' => 'DOWGROUP',
+                'company_tax_id' => '',
+                'company_email' => '',
+                'company_phone' => '',
+                'company_address' => '',
+                'company_website' => '',
+                'company_logo_light' => null,
+                'company_logo_dark' => null,
+                'session_timeout' => 10,
             ]);
         }
     }
@@ -158,14 +175,89 @@ class Settings extends Page implements HasForms
                             ->helperText('Método de redondeo para conversión USD a COP (ej: 3659.29 → 3660)'),
                     ])->columns(2),
                 
-                Forms\Components\Section::make('Configuración de Bold')
-                    ->schema([
-                        Forms\Components\TextInput::make('bold_webhook_secret')
-                            ->label('Secret Key de Webhook')
-                            ->password()
-                            ->maxLength(255)
-                            ->helperText('Secret key para validar webhooks de Bold'),
-                    ]),
+                    Forms\Components\Section::make('Información de Facturación y Contacto')
+                        ->schema([
+                            Forms\Components\TextInput::make('company_name')
+                                ->label('Nombre de la Empresa')
+                                ->required()
+                                ->maxLength(255),
+                            
+                            Forms\Components\TextInput::make('company_tax_id')
+                                ->label('NIT')
+                                ->maxLength(255),
+                            
+                            Forms\Components\TextInput::make('company_email')
+                                ->label('Email de Contacto')
+                                ->email()
+                                ->maxLength(255),
+                            
+                            Forms\Components\TextInput::make('company_phone')
+                                ->label('Teléfono')
+                                ->tel()
+                                ->maxLength(255),
+                            
+                            Forms\Components\TextInput::make('company_address')
+                                ->label('Dirección')
+                                ->maxLength(255),
+                            
+                            Forms\Components\TextInput::make('company_website')
+                                ->label('Sitio Web')
+                                ->url()
+                                ->maxLength(255),
+                        ])->columns(2),
+                    
+                    Forms\Components\Section::make('Branding')
+                        ->schema([
+                            Forms\Components\FileUpload::make('company_logo_light')
+                                ->label('Logo para Tema Claro')
+                                ->image()
+                                ->directory('settings/logos')
+                                ->visibility('public')
+                                ->imageEditor()
+                                ->imageCropAspectRatio('16:9')
+                                ->imageResizeTargetWidth('300')
+                                ->imageResizeTargetHeight('100')
+                                ->helperText('Logo que se mostrará en tema claro (login y marca del software)')
+                                ->columnSpan(1),
+                            
+                            Forms\Components\FileUpload::make('company_logo_dark')
+                                ->label('Logo para Tema Oscuro')
+                                ->image()
+                                ->directory('settings/logos')
+                                ->visibility('public')
+                                ->imageEditor()
+                                ->imageCropAspectRatio('16:9')
+                                ->imageResizeTargetWidth('300')
+                                ->imageResizeTargetHeight('100')
+                                ->helperText('Logo que se mostrará en tema oscuro (login y marca del software)')
+                                ->columnSpan(1),
+                        ])->columns(2),
+                    
+                    Forms\Components\Section::make('Seguridad')
+                        ->schema([
+                            Forms\Components\TextInput::make('session_timeout')
+                                ->label('Tiempo de Inactividad (minutos)')
+                                ->numeric()
+                                ->required()
+                                ->default(10)
+                                ->minValue(1)
+                                ->maxValue(120)
+                                ->suffix('min')
+                                ->helperText('Tiempo máximo de inactividad antes de cerrar sesión automáticamente. Mínimo: 1 minuto, Máximo: 120 minutos.')
+                                ->columnSpanFull(),
+                            
+                            Forms\Components\Placeholder::make('session_info')
+                                ->label('Configuración Actual')
+                                ->content(fn (Forms\Get $get) => 
+                                    $get('session_timeout') . ' minutos de inactividad'
+                                )
+                                ->columnSpanFull(),
+                            
+                            Forms\Components\Placeholder::make('session_description')
+                                ->label('')
+                                ->content('La sesión se cerrará automáticamente si no hay actividad del usuario (movimiento del mouse, teclado, clics, scroll).')
+                                ->columnSpanFull(),
+                        ]),
                 
                 Forms\Components\Section::make('Configuración de Backups')
                     ->schema([
@@ -192,6 +284,7 @@ class Settings extends Page implements HasForms
                     'trm_base', 'bold_spread_percentage', 'exchange_tolerance_value' => 'decimal',
                     'trm_auto_enabled', 'backup_enabled' => 'boolean',
                     'exchange_tolerance_type', 'exchange_rounding' => 'string',
+                    'session_timeout' => 'integer',
                     default => 'string',
                 };
                 
@@ -204,6 +297,14 @@ class Settings extends Page implements HasForms
                 if ($autoTRM) {
                     Setting::set('trm_base', $autoTRM, 'decimal', 'TRM obtenida automáticamente');
                 }
+            }
+            
+            // Actualizar configuración de Filament con los logos
+            if (isset($data['company_logo_light']) || isset($data['company_logo_dark'])) {
+                // Los logos se guardan en settings y se aplicarán en AdminPanelProvider
+                \Filament\Facades\Filament::getCurrentPanel()?->brandLogo(
+                    fn () => asset(Setting::get('company_logo_light', ''))
+                );
             }
             
             Notification::make()

@@ -26,12 +26,6 @@ class SettingsSeeder extends Seeder
                 'description' => 'Spread porcentual para conversión Bold (TRM + Spread)',
             ],
             [
-                'key' => 'bold_webhook_secret',
-                'value' => '',
-                'type' => 'string',
-                'description' => 'Secret key para validar webhooks de Bold',
-            ],
-            [
                 'key' => 'backup_enabled',
                 'value' => 'true',
                 'type' => 'boolean',

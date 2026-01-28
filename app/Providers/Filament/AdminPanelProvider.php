@@ -55,9 +55,19 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ])
-            ->brandName('CRM Services')
-            // ->brandLogo(asset('images/logo.svg')) // Comentado si no existe
-            // ->favicon(asset('images/favicon.ico')) // Comentado si no existe
+            ->brandName(fn () => \App\Models\Setting::get('company_name', 'CRM Services'))
+            ->brandLogo(fn () => {
+                $logo = \App\Models\Setting::get('company_logo_light', null);
+                return $logo ? asset('storage/' . $logo) : null;
+            })
+            ->darkModeBrandLogo(fn () => {
+                $logo = \App\Models\Setting::get('company_logo_dark', null);
+                return $logo ? asset('storage/' . $logo) : null;
+            })
+            ->favicon(fn () => {
+                $logo = \App\Models\Setting::get('company_logo_light', null);
+                return $logo ? asset('storage/' . $logo) : null;
+            })
             ->sidebarCollapsibleOnDesktop()
             ->navigationGroups([
                 'Gestión',

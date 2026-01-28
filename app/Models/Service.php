@@ -163,8 +163,8 @@ class Service extends Model
             return $this->getPriceWithTax();
         }
 
-        // Obtener configuración de cambio
-        $trmBase = (float) \App\Models\Setting::get('trm_base', 4000);
+        // Obtener TRM (automática o manual según configuración)
+        $trmBase = (float) \App\Services\ExchangeRateService::getTRM();
         $spread = (float) \App\Models\Setting::get('bold_spread_percentage', 3);
         $toleranceType = \App\Models\Setting::get('exchange_tolerance_type', 'percentage'); // 'percentage' o 'fixed'
         $toleranceValue = (float) \App\Models\Setting::get('exchange_tolerance_value', 0);

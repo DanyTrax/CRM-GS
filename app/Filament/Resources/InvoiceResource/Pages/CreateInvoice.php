@@ -28,7 +28,7 @@ class CreateInvoice extends CreateRecord
                 
                 // Si es USD, calcular TRM automáticamente con tolerancia
                 if ($service->currency === 'USD') {
-                    $trmBase = \App\Models\Setting::get('trm_base', 4000);
+                    $trmBase = (float) \App\Services\ExchangeRateService::getTRM();
                     $spread = \App\Models\Setting::get('bold_spread_percentage', 3);
                     $toleranceType = \App\Models\Setting::get('exchange_tolerance_type', 'percentage');
                     $toleranceValue = \App\Models\Setting::get('exchange_tolerance_value', 0);

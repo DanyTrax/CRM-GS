@@ -115,7 +115,7 @@ class InvoiceResource extends Resource
                             ->step(0.0001)
                             ->default(fn (Forms\Get $get) => 
                                 $get('currency') === 'USD' 
-                                    ? round(\App\Models\Setting::get('trm_base', 4000) * (1 + (\App\Models\Setting::get('bold_spread_percentage', 3) / 100)), 4)
+                                    ? round(\App\Services\ExchangeRateService::getTRM() * (1 + (\App\Models\Setting::get('bold_spread_percentage', 3) / 100)), 4)
                                     : null
                             )
                             ->helperText('Tasa de cambio con spread aplicado (se calcula automáticamente)'),

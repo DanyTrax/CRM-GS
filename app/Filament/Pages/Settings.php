@@ -33,8 +33,20 @@ class Settings extends Page implements HasForms
     public function mount(): void
     {
         try {
+            $trmAutoEnabled = Setting::get('trm_auto_enabled', false);
+            $trmBase = Setting::get('trm_base', 4000);
+            
+            // Si está habilitada la TRM automática, intentar obtenerla
+            if ($trmAutoEnabled) {
+                $autoTRM = \App\Services\ExchangeRateService::getAutomaticTRM();
+                if ($autoTRM) {
+                    $trmBase = $autoTRM;
+                }
+            }
+            
             $this->form->fill([
-                'trm_base' => Setting::get('trm_base', 4000),
+                'trm_auto_enabled' => $trmAutoEnabled,
+                'trm_base' => $trmBase,
                 'bold_spread_percentage' => Setting::get('bold_spread_percentage', 3),
                 'exchange_tolerance_type' => Setting::get('exchange_tolerance_type', 'percentage'),
                 'exchange_tolerance_value' => Setting::get('exchange_tolerance_value', 0),
@@ -46,6 +58,7 @@ class Settings extends Page implements HasForms
         } catch (\Exception $e) {
             // Si hay error al cargar settings, usar valores por defecto
             $this->form->fill([
+                'trm_auto_enabled' => false,
                 'trm_base' => 4000,
                 'bold_spread_percentage' => 3,
                 'exchange_tolerance_type' => 'percentage',
@@ -64,12 +77,43 @@ class Settings extends Page implements HasForms
             ->schema([
                 Forms\Components\Section::make('Configuración de Moneda')
                     ->schema([
+                        Forms\Components\Toggle::make('trm_auto_enabled')
+                            ->label('TRM Automática')
+                            ->default(false)
+                            ->live()
+                            ->helperText('Obtener tasa de cambio automáticamente del Banco de la República de Colombia')
+                            ->afterStateUpdated(function ($state, Forms\Set $set) {
+                                if ($state) {
+                                    // Intentar obtener TRM automática
+                                    $autoTRM = \App\Services\ExchangeRateService::getAutomaticTRM();
+                                    if ($autoTRM) {
+                                        $set('trm_base', $autoTRM);
+                                        \Filament\Notifications\Notification::make()
+                                            ->title('TRM obtenida automáticamente')
+                                            ->body("Tasa de cambio: " . number_format($autoTRM, 2) . " COP")
+                                            ->success()
+                                            ->send();
+                                    } else {
+                                        \Filament\Notifications\Notification::make()
+                                            ->title('No se pudo obtener TRM automática')
+                                            ->body('Usando valor manual. Verifica tu conexión a internet.')
+                                            ->warning()
+                                            ->send();
+                                    }
+                                }
+                            }),
+                        
                         Forms\Components\TextInput::make('trm_base')
                             ->label('TRM Base (USD a COP)')
                             ->numeric()
                             ->required()
                             ->step(0.01)
-                            ->helperText('Tasa de cambio base para conversión USD a COP (ej: 3659.29)'),
+                            ->disabled(fn ($get) => $get('trm_auto_enabled'))
+                            ->helperText(fn ($get) => 
+                                $get('trm_auto_enabled')
+                                    ? 'TRM obtenida automáticamente (se actualiza cada hora)'
+                                    : 'Tasa de cambio manual para conversión USD a COP (ej: 3659.29)'
+                            ),
                         
                         Forms\Components\TextInput::make('bold_spread_percentage')
                             ->label('Spread Bold (%)')
@@ -146,12 +190,20 @@ class Settings extends Page implements HasForms
             foreach ($data as $key => $value) {
                 $type = match($key) {
                     'trm_base', 'bold_spread_percentage', 'exchange_tolerance_value' => 'decimal',
-                    'backup_enabled' => 'boolean',
+                    'trm_auto_enabled', 'backup_enabled' => 'boolean',
                     'exchange_tolerance_type', 'exchange_rounding' => 'string',
                     default => 'string',
                 };
                 
                 Setting::set($key, $value, $type);
+            }
+            
+            // Si está habilitada la TRM automática, actualizarla
+            if (isset($data['trm_auto_enabled']) && $data['trm_auto_enabled']) {
+                $autoTRM = \App\Services\ExchangeRateService::getAutomaticTRM();
+                if ($autoTRM) {
+                    Setting::set('trm_base', $autoTRM, 'decimal', 'TRM obtenida automáticamente');
+                }
             }
             
             Notification::make()

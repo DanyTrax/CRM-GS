@@ -129,10 +129,13 @@ class InstallController extends Controller
         try {
             // IMPORTANTE: Cambiar sesión y caché a 'file' durante la instalación
             // para evitar errores de conexión a BD antes de que esté configurada
+            // Limpiar el nombre de la base de datos (eliminar espacios y caracteres especiales)
+            $dbName = trim($request->db_database);
+            
             $this->updateEnv([
                 'DB_HOST' => $request->db_host,
                 'DB_PORT' => $request->db_port,
-                'DB_DATABASE' => $request->db_database,
+                'DB_DATABASE' => $dbName,
                 'DB_USERNAME' => $request->db_username,
                 'DB_PASSWORD' => $request->db_password ?: '',
                 'SESSION_DRIVER' => 'file', // Usar archivos durante instalación
@@ -579,9 +582,12 @@ class InstallController extends Controller
         $envContent = File::get($envFile);
 
         foreach ($data as $key => $value) {
+            // Limpiar el valor (eliminar espacios al inicio y final)
+            $value = trim($value);
+            
             // Escapar caracteres especiales en el valor
             $escapedValue = $value;
-            // Si el valor contiene espacios o caracteres especiales, ponerlo entre comillas
+            // Si el valor contiene espacios, #, =, comillas simples o dobles, ponerlo entre comillas
             if (preg_match('/[\s#=\'"]/', $value)) {
                 $escapedValue = '"' . str_replace('"', '\\"', $value) . '"';
             }
@@ -600,6 +606,13 @@ class InstallController extends Controller
         // Recargar variables de entorno
         if (function_exists('opcache_reset')) {
             opcache_reset();
+        }
+        
+        // Limpiar caché de configuración para que tome los nuevos valores
+        try {
+            Artisan::call('config:clear');
+        } catch (\Exception $e) {
+            // Ignorar errores
         }
     }
 }

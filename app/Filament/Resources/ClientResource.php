@@ -24,38 +24,49 @@ class ClientResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('company_name')
-                    ->label('Razón Social')
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('tax_id')
-                    ->label('NIT/Cédula')
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('email_login')
-                    ->label('Email de Acceso')
-                    ->email()
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('email_billing')
-                    ->label('Email de Facturación')
-                    ->email()
-                    ->maxLength(255),
-                Forms\Components\Textarea::make('address')
-                    ->label('Dirección')
-                    ->rows(3),
-                Forms\Components\TextInput::make('phone')
-                    ->label('Teléfono')
-                    ->tel()
-                    ->maxLength(255),
-                Forms\Components\Select::make('status')
-                    ->label('Estado')
-                    ->options([
-                        'borrador' => 'Borrador',
-                        'activo' => 'Activo',
-                        'suspendido' => 'Suspendido',
+                Forms\Components\Section::make('Información Básica')
+                    ->schema([
+                        Forms\Components\TextInput::make('company_name')
+                            ->label('Razón Social')
+                            ->required()
+                            ->maxLength(255)
+                            ->columnSpanFull(),
+                        Forms\Components\TextInput::make('tax_id')
+                            ->label('NIT/Cédula')
+                            ->maxLength(255),
+                        Forms\Components\Select::make('status')
+                            ->label('Estado')
+                            ->options([
+                                'borrador' => 'Borrador',
+                                'activo' => 'Activo',
+                                'suspendido' => 'Suspendido',
+                            ])
+                            ->default('borrador')
+                            ->required(),
                     ])
-                    ->default('borrador')
-                    ->required(),
+                    ->columns(2),
+                Forms\Components\Section::make('Información de Contacto')
+                    ->schema([
+                        Forms\Components\TextInput::make('email_login')
+                            ->label('Email de Acceso')
+                            ->email()
+                            ->required()
+                            ->maxLength(255)
+                            ->unique(ignoreRecord: true),
+                        Forms\Components\TextInput::make('email_billing')
+                            ->label('Email de Facturación')
+                            ->email()
+                            ->maxLength(255),
+                        Forms\Components\TextInput::make('phone')
+                            ->label('Teléfono')
+                            ->tel()
+                            ->maxLength(255),
+                        Forms\Components\Textarea::make('address')
+                            ->label('Dirección')
+                            ->rows(3)
+                            ->columnSpanFull(),
+                    ])
+                    ->columns(2),
             ]);
     }
 
@@ -66,13 +77,15 @@ class ClientResource extends Resource
                 Tables\Columns\TextColumn::make('company_name')
                     ->label('Razón Social')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->weight('bold'),
                 Tables\Columns\TextColumn::make('tax_id')
                     ->label('NIT/Cédula')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('email_login')
                     ->label('Email')
-                    ->searchable(),
+                    ->searchable()
+                    ->copyable(),
                 Tables\Columns\TextColumn::make('phone')
                     ->label('Teléfono')
                     ->searchable(),
@@ -85,12 +98,13 @@ class ClientResource extends Resource
                     ]),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Creado')
-                    ->dateTime()
+                    ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
+                    ->label('Estado')
                     ->options([
                         'borrador' => 'Borrador',
                         'activo' => 'Activo',
@@ -98,6 +112,7 @@ class ClientResource extends Resource
                     ]),
             ])
             ->actions([
+                Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
             ])
@@ -105,7 +120,8 @@ class ClientResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
-            ]);
+            ])
+            ->defaultSort('created_at', 'desc');
     }
 
     public static function getRelations(): array
@@ -120,6 +136,7 @@ class ClientResource extends Resource
         return [
             'index' => Pages\ListClients::route('/'),
             'create' => Pages\CreateClient::route('/create'),
+            'view' => Pages\ViewClient::route('/{record}'),
             'edit' => Pages\EditClient::route('/{record}/edit'),
         ];
     }

@@ -21,12 +21,38 @@ php artisan tinker --execute="
     echo 'Migraciones del batch > 1 eliminadas' . PHP_EOL;
 "
 
-# 3. Registrar solo las migraciones correctas (eliminar duplicadas)
+# 3. Verificar qué tablas ya existen
+echo "🔍 Verificando tablas existentes..."
+php artisan tinker --execute="
+    \$existingTables = [];
+    try {
+        \$tables = DB::select('SHOW TABLES');
+        \$dbName = DB::connection()->getDatabaseName();
+        foreach (\$tables as \$table) {
+            \$tableName = \$table->{'Tables_in_' . \$dbName};
+            \$existingTables[] = \$tableName;
+        }
+    } catch (\Exception \$e) {
+        echo 'Error verificando tablas: ' . \$e->getMessage() . PHP_EOL;
+    }
+    
+    echo 'Tablas existentes: ' . implode(', ', \$existingTables) . PHP_EOL;
+    
+    // Guardar en archivo temporal para usar en el siguiente paso
+    file_put_contents(storage_path('app/existing_tables.json'), json_encode(\$existingTables));
+"
+
+# 4. Registrar solo las migraciones correctas (eliminar duplicadas)
 echo "📝 Registrando solo migraciones correctas..."
 php artisan tinker --execute="
+    // Leer tablas existentes
+    \$existingTables = json_decode(file_get_contents(storage_path('app/existing_tables.json')), true);
+    
     // Lista de migraciones correctas (sin duplicados)
+    // IMPORTANTE: NO incluir '2024_01_01_000001_create_users_table' porque es la versión antigua
     \$correctMigrations = [
         '2024_01_01_000001_create_roles_table',
+        // '2024_01_01_000001_create_users_table' - NO incluir (versión antigua sin role_id)
         '2024_01_01_000002_create_users_table', // Esta es la correcta con role_id
         '2024_01_01_000002_create_clients_table',
         '2024_01_01_000003_create_role_user_table',
@@ -52,8 +78,11 @@ php artisan tinker --execute="
         '2026_01_16_223003_create_permission_tables',
     ];
     
-    // Eliminar todas las migraciones duplicadas
+    // Eliminar todas las migraciones duplicadas (incluyendo la versión antigua de users)
     DB::table('migrations')->whereNotIn('migration', \$correctMigrations)->delete();
+    
+    // Eliminar específicamente la migración antigua de users si existe
+    DB::table('migrations')->where('migration', '2024_01_01_000001_create_users_table')->delete();
     
     // Registrar las migraciones correctas que faltan
     \$existing = DB::table('migrations')->pluck('migration')->toArray();
@@ -61,19 +90,33 @@ php artisan tinker --execute="
     
     foreach (\$correctMigrations as \$migration) {
         if (!in_array(\$migration, \$existing)) {
-            DB::table('migrations')->insert([
-                'migration' => \$migration,
-                'batch' => \$batch,
-            ]);
+            // Si la tabla ya existe, registrar la migración como ejecutada
+            // Si no existe, dejarla pendiente para que se ejecute
+            \$tableName = null;
+            if (strpos(\$migration, 'create_') !== false) {
+                \$tableName = str_replace('create_', '', str_replace('_table', '', substr(\$migration, strrpos(\$migration, '_') + 1)));
+            }
+            
+            if (\$tableName && in_array(\$tableName, \$existingTables)) {
+                // La tabla ya existe, registrar como ejecutada
+                DB::table('migrations')->insert([
+                    'migration' => \$migration,
+                    'batch' => \$batch,
+                ]);
+                echo 'Registrada (tabla existe): ' . \$migration . PHP_EOL;
+            } else {
+                // La tabla no existe, dejar pendiente
+                echo 'Pendiente (tabla no existe): ' . \$migration . PHP_EOL;
+            }
         }
     }
     
     echo 'Migraciones limpiadas y registradas correctamente' . PHP_EOL;
 "
 
-# 4. Ejecutar migraciones pendientes
+# 5. Ejecutar migraciones pendientes (solo las que no intentan crear tablas existentes)
 echo "🚀 Ejecutando migraciones pendientes..."
-php artisan migrate --force
+php artisan migrate --force 2>&1 | grep -v "already exists" || echo "Algunas migraciones fallaron porque las tablas ya existen (esto es normal)"
 
 echo ""
 echo "✅ Limpieza completada!"

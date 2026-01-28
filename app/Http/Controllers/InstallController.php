@@ -250,23 +250,119 @@ class InstallController extends Controller
                 Artisan::call('key:generate', ['--force' => true]);
             }
 
-            // 3. Verificar si las tablas ya existen
-            $tablesExist = false;
+            // 3. Verificar si la tabla migrations existe y tiene registros
+            $migrationsTableExists = false;
+            $migrationsCount = 0;
+            
             try {
-                $tables = DB::select('SHOW TABLES');
-                $tablesExist = count($tables) > 0;
+                // Verificar si la tabla migrations existe
+                $migrationsTableExists = DB::getSchemaBuilder()->hasTable('migrations');
+                
+                if ($migrationsTableExists) {
+                    // Contar migraciones ejecutadas
+                    $migrationsCount = DB::table('migrations')->count();
+                }
             } catch (\Exception $e) {
-                // Si hay error al verificar, continuar con migraciones
-                $tablesExist = false;
+                // Si hay error, asumir que no existe
+                $migrationsTableExists = false;
+                $migrationsCount = 0;
             }
 
-            // 4. Ejecutar migraciones (solo las pendientes si las tablas ya existen)
-            if ($tablesExist) {
-                // Si las tablas ya existen, ejecutar solo migraciones pendientes
+            // 4. Verificar si las tablas principales ya existen
+            $usersTableExists = false;
+            try {
+                $usersTableExists = DB::getSchemaBuilder()->hasTable('users');
+            } catch (\Exception $e) {
+                $usersTableExists = false;
+            }
+
+            // 5. Ejecutar migraciones
+            if ($usersTableExists && $migrationsTableExists && $migrationsCount > 0) {
+                // Si las tablas ya existen y hay migraciones registradas, ejecutar solo pendientes
                 Artisan::call('migrate', ['--force' => true]);
+            } elseif ($usersTableExists && !$migrationsTableExists) {
+                // Si las tablas existen pero no hay tabla migrations, crear la tabla migrations primero
+                // y luego marcar las migraciones como ejecutadas
+                try {
+                    // Crear tabla migrations si no existe
+                    if (!$migrationsTableExists) {
+                        DB::statement("CREATE TABLE IF NOT EXISTS `migrations` (
+                            `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+                            `migration` varchar(255) NOT NULL,
+                            `batch` int(11) NOT NULL,
+                            PRIMARY KEY (`id`)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+                    }
+                    
+                    // Obtener todas las migraciones del directorio
+                    $migrationFiles = glob(database_path('migrations/*.php'));
+                    $batch = 1;
+                    
+                    foreach ($migrationFiles as $file) {
+                        $migrationName = basename($file, '.php');
+                        
+                        // Verificar si ya está registrada
+                        $exists = DB::table('migrations')
+                            ->where('migration', $migrationName)
+                            ->exists();
+                        
+                        if (!$exists) {
+                            DB::table('migrations')->insert([
+                                'migration' => $migrationName,
+                                'batch' => $batch,
+                            ]);
+                        }
+                    }
+                    
+                    // Ahora ejecutar solo migraciones pendientes
+                    Artisan::call('migrate', ['--force' => true]);
+                } catch (\Exception $e) {
+                    // Si falla, intentar migrar normalmente (puede fallar si las tablas existen)
+                    // En este caso, simplemente continuar sin ejecutar migraciones
+                }
             } else {
-                // Si no hay tablas, ejecutar migraciones desde cero
-                Artisan::call('migrate', ['--force' => true]);
+                // Si no hay tablas, ejecutar migraciones normalmente
+                try {
+                    Artisan::call('migrate', ['--force' => true]);
+                } catch (\Exception $e) {
+                    // Si falla porque las tablas ya existen, intentar registrar las migraciones
+                    if (str_contains($e->getMessage(), 'already exists')) {
+                        // Las tablas existen pero no están registradas en migrations
+                        // Crear tabla migrations y registrar todas las migraciones
+                        try {
+                            if (!DB::getSchemaBuilder()->hasTable('migrations')) {
+                                DB::statement("CREATE TABLE IF NOT EXISTS `migrations` (
+                                    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+                                    `migration` varchar(255) NOT NULL,
+                                    `batch` int(11) NOT NULL,
+                                    PRIMARY KEY (`id`)
+                                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+                            }
+                            
+                            $migrationFiles = glob(database_path('migrations/*.php'));
+                            $batch = 1;
+                            
+                            foreach ($migrationFiles as $file) {
+                                $migrationName = basename($file, '.php');
+                                
+                                $exists = DB::table('migrations')
+                                    ->where('migration', $migrationName)
+                                    ->exists();
+                                
+                                if (!$exists) {
+                                    DB::table('migrations')->insert([
+                                        'migration' => $migrationName,
+                                        'batch' => $batch,
+                                    ]);
+                                }
+                            }
+                        } catch (\Exception $e2) {
+                            // Si falla, continuar de todas formas
+                        }
+                    } else {
+                        throw $e;
+                    }
+                }
             }
 
             // 5. Ejecutar seeders (solo si no hay datos)

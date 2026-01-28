@@ -55,10 +55,26 @@
             headers: {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}',
                 'Content-Type': 'application/json',
-                'Accept': 'application/json'
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
             }
         })
-        .then(r => r.json())
+        .then(async r => {
+            // Verificar si la respuesta es JSON
+            const contentType = r.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await r.text();
+                throw new Error('El servidor devolvió una respuesta no válida. ' + (text.substring(0, 500) || 'Error desconocido'));
+            }
+            
+            if (!r.ok) {
+                // Intentar parsear el JSON de error
+                const errorData = await r.json().catch(() => null);
+                throw new Error(errorData?.message || `Error HTTP ${r.status}`);
+            }
+            
+            return r.json();
+        })
         .then(data => {
             if (data.success) {
                 updateProgress(100, '¡Instalación completada!');
@@ -72,17 +88,24 @@
                     }, 3000);
                 }, 1000);
             } else {
+                updateProgress(0, 'Error durante la instalación');
                 document.getElementById('progress-messages').innerHTML += `
                     <div class="alert alert-danger mt-3">
-                        <i class="bi bi-x-circle"></i> Error: ${data.message}
+                        <i class="bi bi-x-circle"></i> 
+                        <strong>Error:</strong> ${data.message || 'Error desconocido durante la instalación'}
+                        ${data.trace ? '<br><small><pre style="font-size: 0.8em; max-height: 200px; overflow: auto;">' + data.trace + '</pre></small>' : ''}
                     </div>
                 `;
             }
         })
         .catch(error => {
+            console.error('Error completando instalación:', error);
+            updateProgress(0, 'Error durante la instalación');
             document.getElementById('progress-messages').innerHTML += `
                 <div class="alert alert-danger mt-3">
-                    <i class="bi bi-exclamation-triangle"></i> Error: ${error.message}
+                    <i class="bi bi-exclamation-triangle"></i> 
+                    <strong>Error:</strong> ${error.message || 'Error desconocido al completar la instalación'}
+                    <br><small>Verifica los logs del servidor o contacta al administrador.</small>
                 </div>
             `;
         });

@@ -43,7 +43,14 @@ Route::get('/', function () {
     if (!$isInstalled) {
         return redirect()->route('installer.requirements');
     }
-    return redirect()->route('admin.dashboard');
+    
+    // Si está autenticado, redirigir al dashboard
+    if (auth()->check()) {
+        return redirect()->route('filament.admin.pages.dashboard');
+    }
+    
+    // Si no está autenticado, mostrar login de Filament
+    return redirect()->route('filament.admin.auth.login');
 });
 
 // Autenticación: Filament maneja el login en /admin/login

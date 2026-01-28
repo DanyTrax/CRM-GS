@@ -75,21 +75,35 @@
             method: 'GET',
             headers: {
                 'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json'
+            },
+            credentials: 'same-origin'
         })
             .then(r => {
+                // Si la respuesta no es OK, intentar parsear el JSON de error
                 if (!r.ok) {
-                    throw new Error('Error en la petición');
+                    return r.json().then(err => {
+                        throw new Error(err.message || 'Error en la petición');
+                    }).catch(() => {
+                        throw new Error('Error HTTP ' + r.status);
+                    });
                 }
                 return r.json();
             })
             .then(data => {
-                results.composer.status = data.installed ? 'success' : 'error';
+                // Si vendor existe, considerar Composer como disponible
+                if (data.installed || data.vendor_exists) {
+                    results.composer.status = 'success';
+                } else {
+                    results.composer.status = 'warning';
+                }
                 renderResults(results);
             })
             .catch((error) => {
                 console.error('Error verificando Composer:', error);
+                // Si hay error pero vendor/autoload.php existe, considerar como warning
+                // porque las dependencias ya están instaladas
                 results.composer.status = 'warning';
                 renderResults(results);
             });

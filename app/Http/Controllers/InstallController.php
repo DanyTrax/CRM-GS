@@ -39,11 +39,27 @@ class InstallController extends Controller
      */
     public function checkComposer()
     {
-        $composerPath = $this->findComposer();
-        return response()->json([
-            'installed' => $composerPath !== null,
-            'path' => $composerPath,
-        ]);
+        try {
+            $composerPath = $this->findComposer();
+            
+            // También verificar si vendor/autoload.php existe
+            $vendorExists = file_exists(base_path('vendor/autoload.php'));
+            
+            return response()->json([
+                'installed' => $composerPath !== null || $vendorExists,
+                'path' => $composerPath,
+                'vendor_exists' => $vendorExists,
+            ]);
+        } catch (\Exception $e) {
+            // Si hay algún error, asumir que Composer no está disponible
+            // pero no fallar completamente
+            return response()->json([
+                'installed' => file_exists(base_path('vendor/autoload.php')),
+                'path' => null,
+                'vendor_exists' => file_exists(base_path('vendor/autoload.php')),
+                'error' => config('app.debug') ? $e->getMessage() : null,
+            ]);
+        }
     }
 
     /**
@@ -277,25 +293,43 @@ class InstallController extends Controller
      */
     protected function findComposer(): ?string
     {
-        $paths = [
-            'composer',
-            base_path('composer.phar'),
-            '/usr/local/bin/composer',
-            '/usr/bin/composer',
-        ];
+        try {
+            $paths = [
+                'composer',
+                base_path('composer.phar'),
+                '/usr/local/bin/composer',
+                '/usr/bin/composer',
+                '/opt/cpanel/composer/bin/composer', // cPanel específico
+                '/usr/local/cpanel/3rdparty/bin/composer', // cPanel alternativo
+            ];
 
-        foreach ($paths as $path) {
-            if (is_executable($path) || (file_exists($path) && is_file($path))) {
-                return $path;
+            foreach ($paths as $path) {
+                // Verificar si el archivo existe y es ejecutable
+                if (file_exists($path) && is_executable($path)) {
+                    return $path;
+                }
             }
-        }
 
-        $whichComposer = shell_exec('which composer 2>/dev/null');
-        if ($whichComposer) {
-            return trim($whichComposer);
-        }
+            // Intentar encontrar con which (solo si shell_exec está permitido)
+            if (function_exists('shell_exec') && !in_array('shell_exec', explode(',', ini_get('disable_functions')))) {
+                $whichComposer = @shell_exec('which composer 2>/dev/null');
+                if ($whichComposer && trim($whichComposer)) {
+                    return trim($whichComposer);
+                }
+            }
 
-        return null;
+            // Si no se encuentra, verificar si vendor/autoload.php existe
+            // Esto indica que las dependencias ya están instaladas
+            if (file_exists(base_path('vendor/autoload.php'))) {
+                // Retornar un valor que indique que las dependencias están instaladas
+                return 'vendor/autoload.php exists';
+            }
+
+            return null;
+        } catch (\Exception $e) {
+            // En caso de error, retornar null
+            return null;
+        }
     }
 
     /**

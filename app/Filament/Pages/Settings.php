@@ -5,10 +5,14 @@ namespace App\Filament\Pages;
 use App\Models\Setting;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Contracts\HasForms;
 use Filament\Pages\Page;
 use Filament\Notifications\Notification;
 
-class Settings extends Page
+class Settings extends Page implements HasForms
+{
+    use InteractsWithForms;
 {
     protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
     

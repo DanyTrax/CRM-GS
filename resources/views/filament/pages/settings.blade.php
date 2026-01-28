@@ -7,4 +7,6 @@
             :full-width="$this->hasFullWidthFormActions()"
         />
     </form>
+    
+    <x-filament-actions::modals />
 </x-filament-panels::page>

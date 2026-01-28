@@ -55,18 +55,36 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ])
-            ->brandName(fn () => \App\Models\Setting::get('company_name', 'CRM Services'))
-            ->brandLogo(fn () => {
-                $logo = \App\Models\Setting::get('company_logo_light', null);
-                return $logo ? asset('storage/' . $logo) : null;
+            ->brandName(function () {
+                try {
+                    return \App\Models\Setting::get('company_name', 'CRM Services');
+                } catch (\Exception $e) {
+                    return 'CRM Services';
+                }
             })
-            ->darkModeBrandLogo(fn () => {
-                $logo = \App\Models\Setting::get('company_logo_dark', null);
-                return $logo ? asset('storage/' . $logo) : null;
+            ->brandLogo(function () {
+                try {
+                    $logo = \App\Models\Setting::get('company_logo_light', null);
+                    return $logo ? asset('storage/' . $logo) : null;
+                } catch (\Exception $e) {
+                    return null;
+                }
             })
-            ->favicon(fn () => {
-                $logo = \App\Models\Setting::get('company_logo_light', null);
-                return $logo ? asset('storage/' . $logo) : null;
+            ->darkModeBrandLogo(function () {
+                try {
+                    $logo = \App\Models\Setting::get('company_logo_dark', null);
+                    return $logo ? asset('storage/' . $logo) : null;
+                } catch (\Exception $e) {
+                    return null;
+                }
+            })
+            ->favicon(function () {
+                try {
+                    $logo = \App\Models\Setting::get('company_logo_light', null);
+                    return $logo ? asset('storage/' . $logo) : null;
+                } catch (\Exception $e) {
+                    return null;
+                }
             })
             ->sidebarCollapsibleOnDesktop()
             ->navigationGroups([

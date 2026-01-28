@@ -27,7 +27,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
-            ->homeUrl(route('filament.admin.pages.dashboard'))
+            ->homeUrl('/admin')
             ->colors([
                 'primary' => Color::Blue,
             ])

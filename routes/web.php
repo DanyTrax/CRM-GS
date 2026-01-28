@@ -46,11 +46,11 @@ Route::get('/', function () {
     
     // Si está autenticado, redirigir al dashboard
     if (auth()->check()) {
-        return redirect()->route('filament.admin.pages.dashboard');
+        return redirect('/admin');
     }
     
     // Si no está autenticado, mostrar login de Filament
-    return redirect()->route('filament.admin.auth.login');
+    return redirect('/admin/login');
 });
 
 // Autenticación: Filament maneja el login en /admin/login

@@ -26,6 +26,8 @@ class PaymentResource extends Resource
     protected static ?string $navigationGroup = 'Facturación';
     
     protected static ?int $navigationSort = 2;
+    
+    protected static ?string $slug = 'payments';
 
     public static function canViewAny(): bool
     {

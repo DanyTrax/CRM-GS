@@ -104,32 +104,71 @@
     function saveDatabase() {
         const form = document.getElementById('database-form');
         const formData = new FormData(form);
+        const messageDiv = document.getElementById('connection-message');
+        const saveBtn = document.getElementById('save-btn');
+        
+        // Deshabilitar botón mientras se procesa
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Guardando...';
+        messageDiv.innerHTML = '';
         
         fetch('{{ route("installer.save-database") }}', {
             method: 'POST',
             body: formData,
             headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
             }
         })
-        .then(r => r.json())
+        .then(async r => {
+            // Verificar si la respuesta es JSON
+            const contentType = r.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await r.text();
+                throw new Error('El servidor devolvió una respuesta no válida. ' + (text.substring(0, 200) || 'Error desconocido'));
+            }
+            
+            if (!r.ok) {
+                // Intentar parsear el JSON de error
+                const errorData = await r.json().catch(() => null);
+                throw new Error(errorData?.message || `Error HTTP ${r.status}`);
+            }
+            
+            return r.json();
+        })
         .then(data => {
             if (data.success) {
-                window.location.href = '{{ route("installer.admin") }}';
-            } else {
-                document.getElementById('connection-message').innerHTML = `
-                    <div class="alert alert-danger">
-                        <i class="bi bi-x-circle"></i> ${data.message}
+                messageDiv.innerHTML = `
+                    <div class="alert alert-success">
+                        <i class="bi bi-check-circle"></i> ${data.message || 'Configuración guardada exitosamente'}
                     </div>
                 `;
+                // Redirigir después de un breve delay
+                setTimeout(() => {
+                    window.location.href = '{{ route("installer.admin") }}';
+                }, 500);
+            } else {
+                messageDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-x-circle"></i> ${data.message || 'Error al guardar la configuración'}
+                    </div>
+                `;
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = 'Guardar y Continuar <i class="bi bi-arrow-right"></i>';
             }
         })
         .catch(error => {
-            document.getElementById('connection-message').innerHTML = `
+            console.error('Error guardando base de datos:', error);
+            messageDiv.innerHTML = `
                 <div class="alert alert-danger">
-                    <i class="bi bi-exclamation-triangle"></i> Error: ${error.message}
+                    <i class="bi bi-exclamation-triangle"></i> 
+                    <strong>Error:</strong> ${error.message || 'Error desconocido al guardar la configuración'}
+                    <br><small>Verifica los logs del servidor o contacta al administrador.</small>
                 </div>
             `;
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = 'Guardar y Continuar <i class="bi bi-arrow-right"></i>';
         });
     }
 </script>

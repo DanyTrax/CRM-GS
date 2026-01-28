@@ -17,9 +17,12 @@ class InstallController extends Controller
      */
     public function __construct()
     {
-        // IMPORTANTE: Forzar sesión en archivos durante la instalación
+        // IMPORTANTE: Forzar sesión y caché en archivos durante la instalación
         // para evitar errores de conexión a BD antes de que esté configurada
-        config(['session.driver' => 'file']);
+        config([
+            'session.driver' => 'file',
+            'cache.default' => 'file', // Usar archivos para caché también
+        ]);
         
         $isInstalled = file_exists(base_path('.env')) && 
                       file_exists(storage_path('app/.installed')) &&
@@ -101,12 +104,12 @@ class InstallController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Conexión exitosa a la base de datos',
-            ]);
+            ], 200, [], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Error de conexión: ' . $e->getMessage(),
-            ], 400);
+            ], 400, [], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -124,7 +127,7 @@ class InstallController extends Controller
         ]);
 
         try {
-            // IMPORTANTE: Cambiar sesión a 'file' durante la instalación
+            // IMPORTANTE: Cambiar sesión y caché a 'file' durante la instalación
             // para evitar errores de conexión a BD antes de que esté configurada
             $this->updateEnv([
                 'DB_HOST' => $request->db_host,
@@ -133,6 +136,7 @@ class InstallController extends Controller
                 'DB_USERNAME' => $request->db_username,
                 'DB_PASSWORD' => $request->db_password ?: '',
                 'SESSION_DRIVER' => 'file', // Usar archivos durante instalación
+                'CACHE_DRIVER' => 'file', // Usar archivos para caché también
             ]);
 
             // Actualizar configuración temporal
@@ -143,6 +147,7 @@ class InstallController extends Controller
                 'database.connections.mysql.username' => $request->db_username,
                 'database.connections.mysql.password' => $request->db_password,
                 'session.driver' => 'file', // Forzar sesión en archivos
+                'cache.default' => 'file', // Forzar caché en archivos
             ]);
 
             // Generar APP_KEY si no existe
@@ -151,17 +156,24 @@ class InstallController extends Controller
             }
 
             // Limpiar caché de configuración para que tome los nuevos valores
-            Artisan::call('config:clear');
+            // Usar try-catch para evitar errores si la BD aún no está lista
+            try {
+                Artisan::call('config:clear');
+            } catch (\Exception $e) {
+                // Ignorar errores de caché durante instalación
+            }
 
             return response()->json([
                 'success' => true,
                 'message' => 'Configuración guardada exitosamente',
-            ]);
+            ], 200, [], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
+            // Asegurar que siempre devolvemos JSON válido
             return response()->json([
                 'success' => false,
                 'message' => 'Error al guardar: ' . $e->getMessage(),
-            ], 500);
+                'trace' => config('app.debug') ? $e->getTraceAsString() : null,
+            ], 500, [], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -374,8 +386,8 @@ class InstallController extends Controller
             if (File::exists(base_path('.env.example'))) {
                 File::copy(base_path('.env.example'), $envFile);
             } else {
-                // Crear .env básico con sesión en archivos
-                File::put($envFile, "APP_NAME=CRM\nAPP_ENV=local\nAPP_KEY=\nAPP_DEBUG=true\nAPP_URL=http://localhost\nSESSION_DRIVER=file\n\n");
+                // Crear .env básico con sesión y caché en archivos
+                File::put($envFile, "APP_NAME=CRM\nAPP_ENV=local\nAPP_KEY=\nAPP_DEBUG=true\nAPP_URL=http://localhost\nSESSION_DRIVER=file\nCACHE_DRIVER=file\n\n");
             }
         }
 

@@ -79,22 +79,44 @@ class PaymentResource extends Resource
                                 }
                             }),
                         
-                        Forms\Components\Select::make('method')
-                            ->label('Método de Pago')
-                            ->options([
-                                'Bold' => 'Bold (Automático)',
-                                'Transferencia' => 'Transferencia Bancaria',
-                                'Efectivo' => 'Efectivo',
-                            ])
-                            ->default('Bold')
-                            ->required()
-                            ->live(),
+                            Forms\Components\Select::make('method')
+                                ->label('Método de Pago')
+                                ->options(function () {
+                                    return \App\Models\PaymentMethod::getActive()
+                                        ->pluck('name', 'slug')
+                                        ->toArray();
+                                })
+                                ->default(function () {
+                                    $default = \App\Models\PaymentMethod::getDefault();
+                                    return $default ? $default->slug : null;
+                                })
+                                ->required()
+                                ->searchable()
+                                ->preload()
+                                ->live()
+                                ->helperText(function ($get) {
+                                    $methodSlug = $get('method');
+                                    if ($methodSlug) {
+                                        $method = \App\Models\PaymentMethod::where('slug', $methodSlug)->first();
+                                        if ($method && $method->instructions) {
+                                            return $method->instructions;
+                                        }
+                                    }
+                                    return null;
+                                }),
                         
-                        Forms\Components\TextInput::make('transaction_id')
-                            ->label('ID de Transacción')
-                            ->maxLength(255)
-                            ->visible(fn (Forms\Get $get) => $get('method') === 'Bold')
-                            ->helperText('ID de transacción de Bold (se llena automáticamente desde webhook)'),
+                            Forms\Components\TextInput::make('transaction_id')
+                                ->label('ID de Transacción')
+                                ->maxLength(255)
+                                ->visible(function (Forms\Get $get) {
+                                    $methodSlug = $get('method');
+                                    if ($methodSlug) {
+                                        $method = \App\Models\PaymentMethod::where('slug', $methodSlug)->first();
+                                        return $method && in_array($method->type, ['automatic', 'gateway']);
+                                    }
+                                    return false;
+                                })
+                                ->helperText('ID de transacción del proveedor (se llena automáticamente desde webhook)'),
                     ])->columns(2),
                 
                 Forms\Components\Section::make('Monto y Aprobación')
@@ -106,19 +128,33 @@ class PaymentResource extends Resource
                             ->required()
                             ->step(0.01),
                         
-                        Forms\Components\FileUpload::make('proof_file')
-                            ->label('Comprobante de Pago')
-                            ->image()
-                            ->directory('payments/proofs')
-                            ->visibility('private')
-                            ->visible(fn (Forms\Get $get) => in_array($get('method'), ['Transferencia', 'Efectivo']))
-                            ->helperText('Subir imagen del comprobante de pago'),
+                            Forms\Components\FileUpload::make('proof_file')
+                                ->label('Comprobante de Pago')
+                                ->image()
+                                ->directory('payments/proofs')
+                                ->visibility('private')
+                                ->visible(function (Forms\Get $get) {
+                                    $methodSlug = $get('method');
+                                    if ($methodSlug) {
+                                        $method = \App\Models\PaymentMethod::where('slug', $methodSlug)->first();
+                                        return $method && $method->type === 'manual';
+                                    }
+                                    return false;
+                                })
+                                ->helperText('Subir imagen del comprobante de pago'),
                         
-                        Forms\Components\DateTimePicker::make('approved_at')
-                            ->label('Fecha de Aprobación')
-                            ->default(now())
-                            ->visible(fn (Forms\Get $get) => $get('method') !== 'Bold')
-                            ->helperText('Para pagos manuales, marcar cuando se aprueba'),
+                            Forms\Components\DateTimePicker::make('approved_at')
+                                ->label('Fecha de Aprobación')
+                                ->default(now())
+                                ->visible(function (Forms\Get $get) {
+                                    $methodSlug = $get('method');
+                                    if ($methodSlug) {
+                                        $method = \App\Models\PaymentMethod::where('slug', $methodSlug)->first();
+                                        return $method && $method->requires_approval;
+                                    }
+                                    return false;
+                                })
+                                ->helperText('Para pagos que requieren aprobación manual, marcar cuando se aprueba'),
                     ])->columns(2),
             ]);
     }
@@ -143,14 +179,24 @@ class PaymentResource extends Resource
                     ->money('COP')
                     ->sortable(),
                 
-                Tables\Columns\TextColumn::make('method')
-                    ->label('Método')
-                    ->badge()
-                    ->colors([
-                        'success' => 'Bold',
-                        'info' => 'Transferencia',
-                        'warning' => 'Efectivo',
-                    ]),
+                    Tables\Columns\TextColumn::make('method')
+                        ->label('Método')
+                        ->badge()
+                        ->formatStateUsing(function ($state) {
+                            $method = \App\Models\PaymentMethod::where('slug', $state)->first();
+                            return $method ? $method->name : $state;
+                        })
+                        ->colors(function ($state) {
+                            $method = \App\Models\PaymentMethod::where('slug', $state)->first();
+                            if ($method) {
+                                return match($method->type) {
+                                    'automatic', 'gateway' => 'success',
+                                    'manual' => 'info',
+                                    default => 'gray',
+                                };
+                            }
+                            return 'gray';
+                        }),
                 
                 Tables\Columns\TextColumn::make('transaction_id')
                     ->label('ID Transacción')
@@ -180,13 +226,13 @@ class PaymentResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('method')
-                    ->label('Método')
-                    ->options([
-                        'Bold' => 'Bold',
-                        'Transferencia' => 'Transferencia',
-                        'Efectivo' => 'Efectivo',
-                    ]),
+                    Tables\Filters\SelectFilter::make('method')
+                        ->label('Método')
+                        ->options(function () {
+                            return \App\Models\PaymentMethod::getActive()
+                                ->pluck('name', 'slug')
+                                ->toArray();
+                        }),
                 
                 Tables\Filters\TernaryFilter::make('approved_at')
                     ->label('Aprobado')

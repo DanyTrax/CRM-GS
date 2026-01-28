@@ -38,6 +38,11 @@ class TicketResource extends Resource
     {
         return true;
     }
+    
+    public static function shouldRegisterRoutes(): bool
+    {
+        return true;
+    }
 
     public static function form(Form $form): Form
     {

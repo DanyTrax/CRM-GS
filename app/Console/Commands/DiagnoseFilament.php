@@ -53,7 +53,23 @@ class DiagnoseFilament extends Command
         $log[] = json_encode($routes, JSON_PRETTY_PRINT);
         $this->displayResults($routes);
 
-        // 5. Guardar log
+        // 5. Verificar caché de rutas
+        $this->info('5. Verificando caché de rutas...');
+        $cacheInfo = $this->checkRouteCache();
+        $log[] = "";
+        $log[] = "## Caché de Rutas";
+        $log[] = json_encode($cacheInfo, JSON_PRETTY_PRINT);
+        $this->displayResults($cacheInfo);
+
+        // 6. Verificar permisos de directorios
+        $this->info('6. Verificando permisos de directorios...');
+        $permissions = $this->checkPermissions();
+        $log[] = "";
+        $log[] = "## Permisos de Directorios";
+        $log[] = json_encode($permissions, JSON_PRETTY_PRINT);
+        $this->displayResults($permissions);
+
+        // 7. Guardar log
         $logContent = implode("\n", $log);
         $logPath = storage_path('logs/filament-diagnosis-' . date('Y-m-d-His') . '.log');
         File::put($logPath, $logContent);
@@ -252,6 +268,51 @@ class DiagnoseFilament extends Command
             } else {
                 $this->info("  ✅ Ruta existe: {$expectedRoute}");
             }
+        }
+
+        return $results;
+    }
+
+    protected function checkRouteCache()
+    {
+        $results = [];
+        
+        $cacheFile = base_path('bootstrap/cache/routes-v7.php');
+        $results['routes_cache_exists'] = File::exists($cacheFile);
+        $results['routes_cache_path'] = $cacheFile;
+        
+        if ($results['routes_cache_exists']) {
+            $results['routes_cache_size'] = File::size($cacheFile);
+            $results['routes_cache_modified'] = date('Y-m-d H:i:s', File::lastModified($cacheFile));
+        }
+
+        $configCacheFile = base_path('bootstrap/cache/config.php');
+        $results['config_cache_exists'] = File::exists($configCacheFile);
+        
+        return $results;
+    }
+
+    protected function checkPermissions()
+    {
+        $results = [];
+        
+        $directories = [
+            'storage' => storage_path(),
+            'storage/logs' => storage_path('logs'),
+            'storage/framework' => storage_path('framework'),
+            'storage/framework/cache' => storage_path('framework/cache'),
+            'storage/framework/sessions' => storage_path('framework/sessions'),
+            'storage/framework/views' => storage_path('framework/views'),
+            'bootstrap/cache' => base_path('bootstrap/cache'),
+        ];
+
+        foreach ($directories as $name => $path) {
+            $results[$name] = [
+                'exists' => File::isDirectory($path),
+                'readable' => is_readable($path),
+                'writable' => is_writable($path),
+                'path' => $path,
+            ];
         }
 
         return $results;

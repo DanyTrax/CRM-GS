@@ -29,35 +29,20 @@ class User extends Authenticatable
     {
         parent::boot();
         
-        static::creating(function ($user) {
-            // Eliminar campos que no existen en la tabla
-            if (isset($user->attributes['two_factor_enabled'])) {
-                unset($user->attributes['two_factor_enabled']);
-            }
-            if (isset($user->attributes['google2fa_enabled'])) {
-                unset($user->attributes['google2fa_enabled']);
-            }
-            if (isset($user->attributes['google2fa_secret'])) {
-                unset($user->attributes['google2fa_secret']);
-            }
-            if (isset($user->attributes['status'])) {
-                unset($user->attributes['status']);
-            }
-        });
-        
-        static::updating(function ($user) {
-            // Eliminar campos que no existen en la tabla
-            if (isset($user->attributes['two_factor_enabled'])) {
-                unset($user->attributes['two_factor_enabled']);
-            }
-            if (isset($user->attributes['google2fa_enabled'])) {
-                unset($user->attributes['google2fa_enabled']);
-            }
-            if (isset($user->attributes['google2fa_secret'])) {
-                unset($user->attributes['google2fa_secret']);
-            }
-            if (isset($user->attributes['status'])) {
-                unset($user->attributes['status']);
+        static::saving(function ($user) {
+            // Eliminar campos que no existen en la tabla antes de guardar
+            $invalidFields = ['two_factor_enabled', 'google2fa_enabled', 'google2fa_secret', 'status'];
+            
+            foreach ($invalidFields as $field) {
+                if (isset($user->attributes[$field])) {
+                    unset($user->attributes[$field]);
+                }
+                if (isset($user->original[$field])) {
+                    unset($user->original[$field]);
+                }
+                if (array_key_exists($field, $user->getAttributes())) {
+                    $user->offsetUnset($field);
+                }
             }
         });
     }

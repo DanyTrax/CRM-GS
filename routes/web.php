@@ -46,13 +46,15 @@ Route::get('/', function () {
     return redirect()->route('admin.dashboard');
 });
 
-// Autenticación (si usas Laravel Breeze/Jetstream, estas rutas ya existen)
+// Autenticación: Filament maneja el login en /admin/login
+// Redirigir /login a /admin/login para mantener compatibilidad
 Route::get('/login', function () {
-    return view('auth.login');
+    return redirect()->route('filament.admin.auth.login');
 })->name('login');
 
 Route::post('/login', function () {
-    // Lógica de login (implementar según tu sistema de auth)
+    // Filament maneja el login, redirigir al panel de admin
+    return redirect()->route('filament.admin.auth.login');
     return redirect()->route('admin.dashboard');
 });
 

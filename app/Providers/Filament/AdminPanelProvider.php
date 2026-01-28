@@ -78,8 +78,6 @@ class AdminPanelProvider extends PanelProvider
                     return null;
                 }
             })
-            ->brandLogoHeight('auto')
-            ->brandLogoWidth('auto')
             ->sidebarCollapsibleOnDesktop()
             ->navigationGroups([
                 'Gestión',

@@ -33,6 +33,25 @@ return new class extends Migration
                 $table->string('avatar')->nullable()->after('two_factor_recovery_codes');
             });
         }
+        
+        // Eliminar columnas antiguas si existen (de la migración antigua)
+        if (Schema::hasColumn('users', 'google2fa_secret')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->dropColumn('google2fa_secret');
+            });
+        }
+        
+        if (Schema::hasColumn('users', 'google2fa_enabled')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->dropColumn('google2fa_enabled');
+            });
+        }
+        
+        if (Schema::hasColumn('users', 'status')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->dropColumn('status');
+            });
+        }
     }
 
     public function down(): void

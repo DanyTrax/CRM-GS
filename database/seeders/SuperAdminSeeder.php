@@ -29,14 +29,10 @@ class SuperAdminSeeder extends Seeder
                 'name' => 'Super Administrador',
                 'password' => Hash::make('Admin123!'), // CAMBIAR EN PRODUCCIÓN
                 'email_verified_at' => now(),
-                'two_factor_enabled' => false, // Se debe habilitar después del primer login
+                'role_id' => $superAdminRole->id,
+                // two_factor_secret y two_factor_recovery_codes se dejan null por defecto
             ]
         );
-
-        // Asignar rol si no lo tiene
-        if (!$superAdmin->roles->contains($superAdminRole->id)) {
-            $superAdmin->roles()->attach($superAdminRole->id);
-        }
 
         $this->command->info('Super Admin creado/actualizado:');
         $this->command->info('  Email: admin@services.local');

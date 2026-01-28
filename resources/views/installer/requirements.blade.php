@@ -34,9 +34,19 @@
 </div>
 
 <script>
+    // Datos del servidor (pasados desde PHP)
+    const serverData = {
+        phpVersion: '{{ PHP_VERSION }}',
+        pdoMysql: {{ extension_loaded('pdo_mysql') ? 'true' : 'false' }},
+        mbstring: {{ extension_loaded('mbstring') ? 'true' : 'false' }},
+        openssl: {{ extension_loaded('openssl') ? 'true' : 'false' }},
+        storageWritable: {{ is_writable(storage_path()) ? 'true' : 'false' }},
+        composerCheckUrl: '{{ route("installer.check-composer") }}'
+    };
+    
     function checkRequirements() {
         const results = {
-            php_version: { status: 'checking', min: '8.2', current: '{{ PHP_VERSION }}' },
+            php_version: { status: 'checking', min: '8.2', current: serverData.phpVersion },
             composer: { status: 'checking' },
             pdo_mysql: { status: 'checking' },
             mbstring: { status: 'checking' },
@@ -45,7 +55,7 @@
         };
         
         // Verificar PHP
-        const phpVersion = parseFloat('{{ PHP_VERSION }}');
+        const phpVersion = parseFloat(serverData.phpVersion);
         if (phpVersion >= 8.2) {
             results.php_version.status = 'success';
         } else {
@@ -53,21 +63,33 @@
         }
         
         // Verificar extensiones
-        results.pdo_mysql.status = {{ extension_loaded('pdo_mysql') ? "'success'" : "'error'" }};
-        results.mbstring.status = {{ extension_loaded('mbstring') ? "'success'" : "'error'" }};
-        results.openssl.status = {{ extension_loaded('openssl') ? "'success'" : "'error'" }};
+        results.pdo_mysql.status = serverData.pdoMysql ? 'success' : 'error';
+        results.mbstring.status = serverData.mbstring ? 'success' : 'error';
+        results.openssl.status = serverData.openssl ? 'success' : 'error';
         
         // Verificar storage
-        results.storage_writable.status = {{ is_writable(storage_path()) ? "'success'" : "'error'" }};
+        results.storage_writable.status = serverData.storageWritable ? 'success' : 'error';
         
         // Verificar Composer (requiere llamada AJAX)
-        fetch('{{ route("installer.check-composer") }}')
-            .then(r => r.json())
+        fetch(serverData.composerCheckUrl, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+            .then(r => {
+                if (!r.ok) {
+                    throw new Error('Error en la petición');
+                }
+                return r.json();
+            })
             .then(data => {
                 results.composer.status = data.installed ? 'success' : 'error';
                 renderResults(results);
             })
-            .catch(() => {
+            .catch((error) => {
+                console.error('Error verificando Composer:', error);
                 results.composer.status = 'warning';
                 renderResults(results);
             });
@@ -134,6 +156,11 @@
     }
     
     // Auto-verificar al cargar
-    document.addEventListener('DOMContentLoaded', checkRequirements);
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', checkRequirements);
+    } else {
+        // DOM ya está listo
+        checkRequirements();
+    }
 </script>
 @endsection

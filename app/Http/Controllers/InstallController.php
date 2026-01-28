@@ -426,12 +426,31 @@ class InstallController extends Controller
             // 8. Crear archivo de instalación completada
             File::put(storage_path('app/.installed'), now()->toDateTimeString());
 
-            // 9. Limpiar caché (con manejo de errores)
+            // 9. Asegurar que CACHE_DRIVER esté en 'file' (no 'database')
+            $this->updateEnv([
+                'CACHE_DRIVER' => 'file',
+            ]);
+            
+            // 10. Limpiar caché (con manejo de errores)
             try {
                 Artisan::call('config:clear');
-                Artisan::call('cache:clear');
+                // Solo limpiar caché de BD si la tabla existe
+                try {
+                    if (DB::getSchemaBuilder()->hasTable('cache')) {
+                        Artisan::call('cache:clear');
+                    }
+                } catch (\Exception $e) {
+                    // Ignorar si la tabla no existe
+                }
             } catch (\Exception $e) {
                 // Ignorar errores de caché
+            }
+            
+            // 11. Publicar assets de Filament
+            try {
+                Artisan::call('filament:assets');
+            } catch (\Exception $e) {
+                // Ignorar si ya están publicados
             }
 
             return response()->json([

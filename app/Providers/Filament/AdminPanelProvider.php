@@ -54,8 +54,8 @@ class AdminPanelProvider extends PanelProvider
                 Authenticate::class,
             ])
             ->brandName('CRM Services')
-            ->brandLogo(asset('images/logo.svg'))
-            ->favicon(asset('images/favicon.ico'))
+            // ->brandLogo(asset('images/logo.svg')) // Comentado si no existe
+            // ->favicon(asset('images/favicon.ico')) // Comentado si no existe
             ->sidebarCollapsibleOnDesktop()
             ->navigationGroups([
                 'Gestión',

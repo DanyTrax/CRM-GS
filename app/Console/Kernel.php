@@ -32,16 +32,10 @@ class Kernel extends ConsoleKernel
             // TODO: Implementar lógica de generación de facturas
         })->daily();
 
-        // Verificar servicios próximos a vencer y enviar notificaciones
-        $schedule->call(function () {
-            \App\Models\Service::where('is_active', true)
-                ->where('expiration_date', '<=', now()->addDays(7))
-                ->where('expiration_date', '>', now())
-                ->each(function ($service) {
-                    // TODO: Enviar notificación al cliente
-                    \Log::info("Servicio próximo a vencer: {$service->id}");
-                });
-        })->daily();
+        // Generar alertas automáticas (servicios próximos a vencer, facturas vencidas, etc.)
+        $schedule->command('alerts:generate')
+            ->daily()
+            ->at('08:00');
     }
 
     /**

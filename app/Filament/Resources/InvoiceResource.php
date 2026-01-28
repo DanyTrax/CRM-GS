@@ -79,12 +79,29 @@ class InvoiceResource extends Resource
                         
                         Forms\Components\Select::make('pdf_template')
                             ->label('Plantilla PDF')
-                            ->options([
-                                'legal' => 'Factura Legal',
-                                'cuenta_cobro' => 'Cuenta de Cobro',
-                            ])
-                            ->default('legal')
-                            ->required(),
+                            ->options(function () {
+                                $templates = \App\Models\InvoiceTemplate::where('is_active', true)
+                                    ->where('type', 'invoice')
+                                    ->pluck('name', 'id')
+                                    ->toArray();
+                                
+                                // Si no hay plantillas personalizadas, usar las básicas
+                                if (empty($templates)) {
+                                    return [
+                                        'legal' => 'Factura Legal',
+                                        'cuenta_cobro' => 'Cuenta de Cobro',
+                                        'remision' => 'Remisión',
+                                    ];
+                                }
+                                
+                                return $templates;
+                            })
+                            ->default(function () {
+                                $default = \App\Models\InvoiceTemplate::getDefault('invoice');
+                                return $default ? $default->id : 'legal';
+                            })
+                            ->searchable()
+                            ->preload(),
                     ])->columns(2),
                 
                 Forms\Components\Section::make('Detalles Financieros')

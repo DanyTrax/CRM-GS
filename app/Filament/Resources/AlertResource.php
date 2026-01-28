@@ -128,17 +128,26 @@ class AlertResource extends Resource
                     ->limit(50)
                     ->tooltip(fn ($record) => $record->message),
                 
-                Tables\Columns\BadgeColumn::make('priority')
+                Tables\Columns\TextColumn::make('priority')
                     ->label('Prioridad')
+                    ->badge()
                     ->colors([
                         'gray' => 'low',
                         'info' => 'medium',
                         'warning' => 'high',
                         'danger' => 'urgent',
-                    ]),
+                    ])
+                    ->formatStateUsing(fn (string $state): string => match($state) {
+                        'low' => 'Baja',
+                        'medium' => 'Media',
+                        'high' => 'Alta',
+                        'urgent' => 'Urgente',
+                        default => $state,
+                    }),
                 
-                Tables\Columns\BadgeColumn::make('status')
+                Tables\Columns\TextColumn::make('status')
                     ->label('Estado')
+                    ->badge()
                     ->colors([
                         'warning' => 'pending',
                         'success' => 'sent',

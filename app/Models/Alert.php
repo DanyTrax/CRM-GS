@@ -33,11 +33,23 @@ class Alert extends Model
     ];
 
     /**
-     * Obtener la entidad relacionada
+     * Obtener la entidad relacionada (Service, Invoice, Payment)
      */
     public function entity()
     {
-        return $this->morphTo('entity', 'entity_type', 'entity_id');
+        if ($this->entity_type === Service::class) {
+            return $this->belongsTo(Service::class, 'entity_id');
+        }
+        
+        if ($this->entity_type === Invoice::class) {
+            return $this->belongsTo(Invoice::class, 'entity_id');
+        }
+        
+        if ($this->entity_type === Payment::class) {
+            return $this->belongsTo(Payment::class, 'entity_id');
+        }
+        
+        return null;
     }
 
     /**
@@ -84,6 +96,8 @@ class Alert extends Model
      */
     public static function createServiceExpiringAlert($service, int $daysBefore = 7): self
     {
+        $triggerDate = Carbon::parse($service->next_due_date)->subDays($daysBefore);
+        
         return self::create([
             'name' => "Servicio próximo a vencer: {$service->name}",
             'type' => 'service_expiring',
@@ -92,7 +106,7 @@ class Alert extends Model
             'message' => "El servicio '{$service->name}' del cliente '{$service->client->company_name}' vence el {$service->next_due_date->format('d/m/Y')}",
             'priority' => $daysBefore <= 3 ? 'high' : 'medium',
             'status' => 'pending',
-            'trigger_date' => $service->next_due_date->subDays($daysBefore),
+            'trigger_date' => $triggerDate,
             'metadata' => [
                 'service_id' => $service->id,
                 'client_id' => $service->client_id,

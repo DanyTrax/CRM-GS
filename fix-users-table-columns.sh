@@ -58,6 +58,25 @@ php artisan tinker --execute="
     echo PHP_EOL . '✅ Estructura de tabla users actualizada correctamente' . PHP_EOL;
 "
 
+# Limpiar caché (sin usar BD si no está lista)
+echo ""
+echo "🧹 Limpiando caché..."
+php artisan config:clear 2>/dev/null || true
+php artisan view:clear 2>/dev/null || true
+# NO ejecutar cache:clear si la tabla cache no existe
+php artisan tinker --execute="
+    try {
+        if (DB::getSchemaBuilder()->hasTable('cache')) {
+            Artisan::call('cache:clear');
+            echo 'Caché limpiado' . PHP_EOL;
+        } else {
+            echo 'Tabla cache no existe, omitiendo limpieza de caché BD' . PHP_EOL;
+        }
+    } catch (\Exception \$e) {
+        echo 'Error al limpiar caché (ignorado): ' . \$e->getMessage() . PHP_EOL;
+    }
+" 2>/dev/null || true
+
 echo ""
 echo "✅ Proceso completado!"
 echo ""

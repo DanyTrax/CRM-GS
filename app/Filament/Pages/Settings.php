@@ -62,6 +62,7 @@ class Settings extends Page implements HasForms
                 'company_website' => Setting::get('company_website', ''),
                 'company_logo_light' => Setting::get('company_logo_light', null),
                 'company_logo_dark' => Setting::get('company_logo_dark', null),
+                'company_favicon' => Setting::get('company_favicon', null),
                 'session_timeout' => Setting::get('session_timeout', 10),
             ]);
         } catch (\Exception $e) {
@@ -83,6 +84,7 @@ class Settings extends Page implements HasForms
                 'company_website' => '',
                 'company_logo_light' => null,
                 'company_logo_dark' => null,
+                'company_favicon' => null,
                 'session_timeout' => 10,
             ]);
         }
@@ -214,10 +216,7 @@ class Settings extends Page implements HasForms
                                 ->directory('settings/logos')
                                 ->visibility('public')
                                 ->imageEditor()
-                                ->imageCropAspectRatio('16:9')
-                                ->imageResizeTargetWidth('300')
-                                ->imageResizeTargetHeight('100')
-                                ->helperText('Logo que se mostrará en tema claro (login y marca del software)')
+                                ->helperText('Logo que se mostrará en tema claro (login y marca del software). Se adapta al ancho disponible.')
                                 ->columnSpan(1),
                             
                             Forms\Components\FileUpload::make('company_logo_dark')
@@ -226,11 +225,18 @@ class Settings extends Page implements HasForms
                                 ->directory('settings/logos')
                                 ->visibility('public')
                                 ->imageEditor()
-                                ->imageCropAspectRatio('16:9')
-                                ->imageResizeTargetWidth('300')
-                                ->imageResizeTargetHeight('100')
-                                ->helperText('Logo que se mostrará en tema oscuro (login y marca del software)')
+                                ->helperText('Logo que se mostrará en tema oscuro (login y marca del software). Se adapta al ancho disponible.')
                                 ->columnSpan(1),
+                            
+                            Forms\Components\FileUpload::make('company_favicon')
+                                ->label('Icono del Sistema (Favicon)')
+                                ->image()
+                                ->directory('settings/logos')
+                                ->visibility('public')
+                                ->imageEditor()
+                                ->acceptedFileTypes(['image/png', 'image/x-icon', 'image/vnd.microsoft.icon'])
+                                ->helperText('Icono que aparece en la pestaña del navegador. Recomendado: PNG o ICO de 32x32 o 16x16 píxeles.')
+                                ->columnSpanFull(),
                         ])->columns(2),
                     
                     Forms\Components\Section::make('Seguridad')

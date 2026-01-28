@@ -22,6 +22,8 @@ class Settings extends Page
     
     protected static ?int $navigationSort = 1;
     
+    protected static ?string $slug = 'settings';
+    
     public ?array $data = [];
     
     public function mount(): void

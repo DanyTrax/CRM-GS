@@ -17,6 +17,10 @@ class InstallController extends Controller
      */
     public function __construct()
     {
+        // IMPORTANTE: Forzar sesión en archivos durante la instalación
+        // para evitar errores de conexión a BD antes de que esté configurada
+        config(['session.driver' => 'file']);
+        
         $isInstalled = file_exists(base_path('.env')) && 
                       file_exists(storage_path('app/.installed')) &&
                       file_exists(base_path('vendor/autoload.php'));
@@ -120,13 +124,15 @@ class InstallController extends Controller
         ]);
 
         try {
-            // Crear/Actualizar .env
+            // IMPORTANTE: Cambiar sesión a 'file' durante la instalación
+            // para evitar errores de conexión a BD antes de que esté configurada
             $this->updateEnv([
                 'DB_HOST' => $request->db_host,
                 'DB_PORT' => $request->db_port,
                 'DB_DATABASE' => $request->db_database,
                 'DB_USERNAME' => $request->db_username,
                 'DB_PASSWORD' => $request->db_password ?: '',
+                'SESSION_DRIVER' => 'file', // Usar archivos durante instalación
             ]);
 
             // Actualizar configuración temporal
@@ -136,12 +142,16 @@ class InstallController extends Controller
                 'database.connections.mysql.database' => $request->db_database,
                 'database.connections.mysql.username' => $request->db_username,
                 'database.connections.mysql.password' => $request->db_password,
+                'session.driver' => 'file', // Forzar sesión en archivos
             ]);
 
             // Generar APP_KEY si no existe
             if (empty(env('APP_KEY'))) {
                 Artisan::call('key:generate', ['--force' => true]);
             }
+
+            // Limpiar caché de configuración para que tome los nuevos valores
+            Artisan::call('config:clear');
 
             return response()->json([
                 'success' => true,
@@ -364,22 +374,35 @@ class InstallController extends Controller
             if (File::exists(base_path('.env.example'))) {
                 File::copy(base_path('.env.example'), $envFile);
             } else {
-                File::put($envFile, 'APP_NAME=CRM\nAPP_ENV=local\nAPP_KEY=\nAPP_DEBUG=true\nAPP_URL=http://localhost\n\n');
+                // Crear .env básico con sesión en archivos
+                File::put($envFile, "APP_NAME=CRM\nAPP_ENV=local\nAPP_KEY=\nAPP_DEBUG=true\nAPP_URL=http://localhost\nSESSION_DRIVER=file\n\n");
             }
         }
 
         $envContent = File::get($envFile);
 
         foreach ($data as $key => $value) {
+            // Escapar caracteres especiales en el valor
+            $escapedValue = $value;
+            // Si el valor contiene espacios o caracteres especiales, ponerlo entre comillas
+            if (preg_match('/[\s#=\'"]/', $value)) {
+                $escapedValue = '"' . str_replace('"', '\\"', $value) . '"';
+            }
+            
             $pattern = "/^{$key}=.*/m";
             
             if (preg_match($pattern, $envContent)) {
-                $envContent = preg_replace($pattern, "{$key}={$value}", $envContent);
+                $envContent = preg_replace($pattern, "{$key}={$escapedValue}", $envContent);
             } else {
-                $envContent .= "\n{$key}={$value}";
+                $envContent .= "\n{$key}={$escapedValue}";
             }
         }
 
         File::put($envFile, $envContent);
+        
+        // Recargar variables de entorno
+        if (function_exists('opcache_reset')) {
+            opcache_reset();
+        }
     }
 }

@@ -36,6 +36,9 @@ class Settings extends Page implements HasForms
             $this->form->fill([
                 'trm_base' => Setting::get('trm_base', 4000),
                 'bold_spread_percentage' => Setting::get('bold_spread_percentage', 3),
+                'exchange_tolerance_type' => Setting::get('exchange_tolerance_type', 'percentage'),
+                'exchange_tolerance_value' => Setting::get('exchange_tolerance_value', 0),
+                'exchange_rounding' => Setting::get('exchange_rounding', 'up'),
                 'bold_webhook_secret' => Setting::get('bold_webhook_secret', ''),
                 'backup_enabled' => Setting::get('backup_enabled', true),
                 'google_drive_folder_id' => Setting::get('google_drive_folder_id', ''),
@@ -45,6 +48,9 @@ class Settings extends Page implements HasForms
             $this->form->fill([
                 'trm_base' => 4000,
                 'bold_spread_percentage' => 3,
+                'exchange_tolerance_type' => 'percentage',
+                'exchange_tolerance_value' => 0,
+                'exchange_rounding' => 'up',
                 'bold_webhook_secret' => '',
                 'backup_enabled' => true,
                 'google_drive_folder_id' => '',
@@ -62,13 +68,50 @@ class Settings extends Page implements HasForms
                             ->label('TRM Base (USD a COP)')
                             ->numeric()
                             ->required()
-                            ->helperText('Tasa de cambio base para conversión USD a COP'),
+                            ->step(0.01)
+                            ->helperText('Tasa de cambio base para conversión USD a COP (ej: 3659.29)'),
                         
                         Forms\Components\TextInput::make('bold_spread_percentage')
                             ->label('Spread Bold (%)')
                             ->numeric()
                             ->required()
+                            ->step(0.01)
                             ->helperText('Porcentaje de spread para conversión Bold (TRM + Spread)'),
+                        
+                        Forms\Components\Select::make('exchange_tolerance_type')
+                            ->label('Tipo de Tolerancia')
+                            ->options([
+                                'percentage' => 'Porcentaje (%)',
+                                'fixed' => 'Valor Fijo (COP)',
+                            ])
+                            ->default('percentage')
+                            ->required()
+                            ->live()
+                            ->helperText('Tipo de ajuste adicional para la tasa de cambio'),
+                        
+                        Forms\Components\TextInput::make('exchange_tolerance_value')
+                            ->label('Valor de Tolerancia')
+                            ->numeric()
+                            ->default(0)
+                            ->step(0.01)
+                            ->required()
+                            ->suffix(fn ($get) => $get('exchange_tolerance_type') === 'percentage' ? '%' : 'COP')
+                            ->helperText(fn ($get) => 
+                                $get('exchange_tolerance_type') === 'percentage'
+                                    ? 'Porcentaje adicional a aplicar sobre TRM + Spread'
+                                    : 'Valor fijo en COP a sumar a TRM + Spread'
+                            ),
+                        
+                        Forms\Components\Select::make('exchange_rounding')
+                            ->label('Redondeo')
+                            ->options([
+                                'up' => 'Redondear hacia arriba',
+                                'down' => 'Redondear hacia abajo',
+                                'nearest' => 'Redondear al más cercano',
+                            ])
+                            ->default('up')
+                            ->required()
+                            ->helperText('Método de redondeo para conversión USD a COP (ej: 3659.29 → 3660)'),
                     ])->columns(2),
                 
                 Forms\Components\Section::make('Configuración de Bold')
@@ -102,8 +145,9 @@ class Settings extends Page implements HasForms
             
             foreach ($data as $key => $value) {
                 $type = match($key) {
-                    'trm_base', 'bold_spread_percentage' => 'integer',
+                    'trm_base', 'bold_spread_percentage', 'exchange_tolerance_value' => 'decimal',
                     'backup_enabled' => 'boolean',
+                    'exchange_tolerance_type', 'exchange_rounding' => 'string',
                     default => 'string',
                 };
                 

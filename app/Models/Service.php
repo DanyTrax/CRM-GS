@@ -18,6 +18,8 @@ class Service extends Model
         'type',
         'currency',
         'price',
+        'tax_enabled',
+        'tax_percentage',
         'billing_cycle',
         'next_due_date',
         'status',
@@ -25,6 +27,8 @@ class Service extends Model
 
     protected $casts = [
         'price' => 'decimal:2',
+        'tax_enabled' => 'boolean',
+        'tax_percentage' => 'decimal:2',
         'next_due_date' => 'date',
         'billing_cycle' => 'integer',
     ];
@@ -123,5 +127,71 @@ class Service extends Model
     public function isExpiringSoon(): bool
     {
         return $this->next_due_date->diffInDays(now()) <= 7 && !$this->isExpired();
+    }
+
+    /**
+     * Calcular precio con impuesto
+     */
+    public function getPriceWithTax(): float
+    {
+        if (!$this->tax_enabled || $this->tax_percentage == 0) {
+            return $this->price;
+        }
+
+        return round($this->price * (1 + ($this->tax_percentage / 100)), 2);
+    }
+
+    /**
+     * Calcular monto del impuesto
+     */
+    public function getTaxAmount(): float
+    {
+        if (!$this->tax_enabled || $this->tax_percentage == 0) {
+            return 0;
+        }
+
+        return round($this->price * ($this->tax_percentage / 100), 2);
+    }
+
+    /**
+     * Convertir precio a COP si es USD
+     * Aplica TRM + Spread + Tolerancia de redondeo
+     */
+    public function getPriceInCOP(): float
+    {
+        if ($this->currency === 'COP') {
+            return $this->getPriceWithTax();
+        }
+
+        // Obtener configuración de cambio
+        $trmBase = \App\Models\Setting::get('trm_base', 4000);
+        $spread = \App\Models\Setting::get('bold_spread_percentage', 3);
+        $toleranceType = \App\Models\Setting::get('exchange_tolerance_type', 'percentage'); // 'percentage' o 'fixed'
+        $toleranceValue = \App\Models\Setting::get('exchange_tolerance_value', 0);
+
+        // Calcular TRM con spread
+        $trmWithSpread = $trmBase * (1 + ($spread / 100));
+
+        // Aplicar tolerancia
+        if ($toleranceType === 'percentage') {
+            $finalRate = $trmWithSpread * (1 + ($toleranceValue / 100));
+        } else {
+            // Tolerancia fija (sumar valor)
+            $finalRate = $trmWithSpread + $toleranceValue;
+        }
+
+        // Convertir precio con impuesto
+        $priceWithTax = $this->getPriceWithTax();
+        $priceInCOP = $priceWithTax * $finalRate;
+
+        // Redondear según configuración
+        $rounding = \App\Models\Setting::get('exchange_rounding', 'up'); // 'up', 'down', 'nearest'
+        
+        return match($rounding) {
+            'up' => ceil($priceInCOP),
+            'down' => floor($priceInCOP),
+            'nearest' => round($priceInCOP),
+            default => round($priceInCOP),
+        };
     }
 }

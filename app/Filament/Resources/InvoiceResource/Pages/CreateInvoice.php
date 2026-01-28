@@ -26,13 +26,34 @@ class CreateInvoice extends CreateRecord
                     'concept' => "Facturación de servicio: {$service->name}",
                 ]);
                 
-                // Si es USD, calcular TRM automáticamente
+                // Si es USD, calcular TRM automáticamente con tolerancia
                 if ($service->currency === 'USD') {
                     $trmBase = \App\Models\Setting::get('trm_base', 4000);
                     $spread = \App\Models\Setting::get('bold_spread_percentage', 3);
+                    $toleranceType = \App\Models\Setting::get('exchange_tolerance_type', 'percentage');
+                    $toleranceValue = \App\Models\Setting::get('exchange_tolerance_value', 0);
+                    
                     $trmWithSpread = $trmBase * (1 + ($spread / 100));
+                    
+                    // Aplicar tolerancia
+                    if ($toleranceType === 'percentage') {
+                        $finalRate = $trmWithSpread * (1 + ($toleranceValue / 100));
+                    } else {
+                        $finalRate = $trmWithSpread + $toleranceValue;
+                    }
+                    
+                    // Calcular precio en COP con redondeo
+                    $priceInCOP = $service->getPriceInCOP();
+                    
                     $this->form->fill([
-                        'trm_snapshot' => round($trmWithSpread, 4),
+                        'trm_snapshot' => round($finalRate, 4),
+                        'total_amount' => $priceInCOP,
+                        'currency' => 'COP', // Siempre facturar en COP
+                    ]);
+                } else {
+                    // Si es COP, usar precio con impuesto
+                    $this->form->fill([
+                        'total_amount' => $service->getPriceWithTax(),
                     ]);
                 }
             }

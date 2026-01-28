@@ -97,25 +97,16 @@ class InvoiceResource extends Resource
                             ->step(0.01),
                         
                         Forms\Components\Select::make('currency')
-                            ->label('Moneda')
+                            ->label('Moneda de Facturación')
                             ->options([
                                 'COP' => 'COP (Pesos Colombianos)',
-                                'USD' => 'USD (Dólares)',
+                                'USD' => 'USD (Dólares) - Se convertirá a COP',
                             ])
                             ->default('COP')
                             ->required()
                             ->live()
-                            ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
-                                if ($state === 'USD') {
-                                    // Calcular TRM automáticamente desde settings
-                                    $trmBase = \App\Models\Setting::get('trm_base', 4000);
-                                    $spread = \App\Models\Setting::get('bold_spread_percentage', 3);
-                                    $trmWithSpread = $trmBase * (1 + ($spread / 100));
-                                    $set('trm_snapshot', round($trmWithSpread, 4));
-                                } else {
-                                    $set('trm_snapshot', null);
-                                }
-                            }),
+                            ->disabled()
+                            ->helperText('Las facturas siempre se cobran en COP. Si el servicio es USD, se convierte automáticamente.'),
                         
                         Forms\Components\TextInput::make('trm_snapshot')
                             ->label('TRM (Tasa de Cambio)')

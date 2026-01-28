@@ -82,7 +82,30 @@ class ServiceResource extends Resource
                             ->numeric()
                             ->required()
                             ->prefix(fn ($get) => $get('currency') === 'USD' ? '$' : '$')
-                            ->suffix(fn ($get) => $get('currency') ?? 'COP'),
+                            ->suffix(fn ($get) => $get('currency') ?? 'COP')
+                            ->helperText(fn ($get) => 
+                                $get('currency') === 'USD' 
+                                    ? 'El precio se cobrará en COP según la tasa de cambio configurada'
+                                    : 'Precio en pesos colombianos'
+                            ),
+                        
+                        Forms\Components\Toggle::make('tax_enabled')
+                            ->label('Aplicar Impuesto')
+                            ->default(false)
+                            ->live()
+                            ->helperText('Habilitar impuesto sobre el precio del servicio'),
+                        
+                        Forms\Components\TextInput::make('tax_percentage')
+                            ->label('Porcentaje de Impuesto (%)')
+                            ->numeric()
+                            ->default(0)
+                            ->minValue(0)
+                            ->maxValue(100)
+                            ->step(0.01)
+                            ->suffix('%')
+                            ->visible(fn ($get) => $get('tax_enabled'))
+                            ->required(fn ($get) => $get('tax_enabled'))
+                            ->helperText('Porcentaje de impuesto a aplicar sobre el precio'),
                         
                         Forms\Components\Select::make('billing_cycle')
                             ->label('Ciclo de Facturación (meses)')
@@ -148,7 +171,17 @@ class ServiceResource extends Resource
                 Tables\Columns\TextColumn::make('price')
                     ->label('Precio')
                     ->money(fn ($record) => $record->currency)
-                    ->sortable(),
+                    ->sortable()
+                    ->description(fn ($record) => 
+                        $record->tax_enabled 
+                            ? "IVA {$record->tax_percentage}%: " . number_format($record->getTaxAmount(), 2) . " {$record->currency}"
+                            : null
+                    ),
+                
+                Tables\Columns\IconColumn::make('tax_enabled')
+                    ->label('Impuesto')
+                    ->boolean()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 
                 Tables\Columns\TextColumn::make('next_due_date')
                     ->label('Próximo Vencimiento')

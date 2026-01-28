@@ -55,7 +55,6 @@ Route::get('/login', function () {
 Route::post('/login', function () {
     // Filament maneja el login, redirigir al panel de admin
     return redirect()->route('filament.admin.auth.login');
-    return redirect()->route('admin.dashboard');
 });
 
 Route::post('/logout', function () {

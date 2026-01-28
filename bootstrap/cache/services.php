@@ -48,7 +48,6 @@
     44 => 'Spatie\\LaravelSettings\\LaravelSettingsServiceProvider',
     45 => 'App\\Providers\\AppServiceProvider',
     46 => 'App\\Providers\\Filament\\AdminPanelProvider',
-    47 => 'App\\Providers\\Filament\\ClientPanelProvider',
   ),
   'eager' => 
   array (
@@ -85,7 +84,6 @@
     30 => 'Spatie\\LaravelSettings\\LaravelSettingsServiceProvider',
     31 => 'App\\Providers\\AppServiceProvider',
     32 => 'App\\Providers\\Filament\\AdminPanelProvider',
-    33 => 'App\\Providers\\Filament\\ClientPanelProvider',
   ),
   'deferred' => 
   array (

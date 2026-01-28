@@ -16,12 +16,12 @@ class DashboardController extends Controller
     {
         $healthStatus = $this->getHealthStatus();
         
-        // Estadísticas generales
+        // Estadísticas generales (con manejo de errores si las tablas no existen)
         $stats = [
-            'total_clients' => \App\Models\Client::count(),
-            'active_services' => \App\Models\Service::where('is_active', true)->count(),
-            'pending_invoices' => \App\Models\Invoice::where('status', 'pending')->count(),
-            'open_tickets' => \App\Models\Ticket::where('status', 'open')->count(),
+            'total_clients' => $this->safeCount(\App\Models\Client::class),
+            'active_services' => $this->safeCount(\App\Models\Service::class, ['is_active' => true]),
+            'pending_invoices' => $this->safeCount(\App\Models\Invoice::class, ['status' => 'pending']),
+            'open_tickets' => $this->safeCount(\App\Models\Ticket::class, ['status' => 'open']),
         ];
 
         return view('admin.dashboard', compact('healthStatus', 'stats'));
@@ -131,5 +131,24 @@ class DashboardController extends Controller
         }
 
         return ['status' => false, 'message' => 'No hay backups registrados'];
+    }
+
+    /**
+     * Contar registros de forma segura (evita errores si la tabla no existe)
+     */
+    protected function safeCount(string $modelClass, array $conditions = []): int
+    {
+        try {
+            $query = $modelClass::query();
+            
+            foreach ($conditions as $column => $value) {
+                $query->where($column, $value);
+            }
+            
+            return $query->count();
+        } catch (\Exception $e) {
+            // Si la tabla no existe o hay error, retornar 0
+            return 0;
+        }
     }
 }

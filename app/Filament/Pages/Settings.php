@@ -28,8 +28,6 @@ class Settings extends Page implements HasForms
     
     protected static ?string $slug = 'settings';
     
-    protected static ?string $routePath = 'settings';
-    
     public ?array $data = [];
     
     public function mount(): void

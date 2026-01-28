@@ -29,20 +29,24 @@ class PaymentResource extends Resource
 
     public static function canViewAny(): bool
     {
-        $user = auth()->user();
-        if (!$user) {
-            return false;
-        }
+        // Temporalmente permitir a todos, luego agregar permisos por roles
+        return true;
         
-        if (!$user->relationLoaded('role')) {
-            $user->load('role');
-        }
-        
-        if (!$user->role) {
-            return false;
-        }
-        
-        return in_array($user->role->slug ?? '', ['super-admin', 'admin-operativo', 'contador']);
+        // Código original comentado para referencia:
+        // $user = auth()->user();
+        // if (!$user) {
+        //     return false;
+        // }
+        // 
+        // if (!$user->relationLoaded('role')) {
+        //     $user->load('role');
+        // }
+        // 
+        // if (!$user->role) {
+        //     return false;
+        // }
+        // 
+        // return in_array($user->role->slug ?? '', ['super-admin', 'admin-operativo', 'contador']);
     }
 
     public static function form(Form $form): Form

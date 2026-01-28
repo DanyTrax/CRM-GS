@@ -121,11 +121,12 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
         Route::post('/{emailLog}/send', [EmailInterceptorController::class, 'send'])->name('send');
     });
     
-    // Configuración (Solo Super Admin)
-    Route::middleware(['role:super-admin'])->prefix('settings')->name('settings.')->group(function () {
-        Route::get('/', function () { return view('admin.settings.index'); })->name('index');
-        Route::put('/', function () { /* Implementar */ })->name('update');
-    });
+    // NOTA: Configuración ahora se maneja con Filament Pages
+    // Las rutas tradicionales están comentadas para evitar conflictos
+    // Route::middleware(['role:super-admin'])->prefix('settings')->name('settings.')->group(function () {
+    //     Route::get('/', function () { return view('admin.settings.index'); })->name('index');
+    //     Route::put('/', function () { /* Implementar */ })->name('update');
+    // });
 });
 
 // API Routes - Webhooks (sin autenticación web)

@@ -190,23 +190,40 @@ class InstallController extends Controller
      */
     public function saveAdmin(Request $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
+        try {
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|email',
+                'password' => 'required|string|min:8|confirmed',
+            ]);
 
-        // Guardar datos en sesión para usarlos en complete()
-        session([
-            'admin_name' => $request->name,
-            'admin_email' => $request->email,
-            'admin_password' => $request->password,
-        ]);
+            // Verificar si el email ya existe (pero no usar unique:users porque la tabla puede no existir aún)
+            // Esto se validará en el paso de complete() cuando se cree el usuario
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Datos de administrador guardados',
-        ]);
+            // Guardar datos en sesión para usarlos en complete()
+            session([
+                'admin_name' => $request->name,
+                'admin_email' => $request->email,
+                'admin_password' => $request->password,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Datos de administrador guardados correctamente',
+            ], 200, [], JSON_UNESCAPED_UNICODE);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validación: ' . implode(', ', $e->errors()['password'] ?? $e->errors()['email'] ?? $e->errors()['name'] ?? ['Error desconocido']),
+                'errors' => $e->errors(),
+            ], 422, [], JSON_UNESCAPED_UNICODE);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al guardar: ' . $e->getMessage(),
+                'trace' => config('app.debug') ? $e->getTraceAsString() : null,
+            ], 500, [], JSON_UNESCAPED_UNICODE);
+        }
     }
 
     /**

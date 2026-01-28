@@ -44,7 +44,7 @@ Route::get('/', function () {
         return redirect()->route('installer.requirements');
     }
     
-    // Si está autenticado, redirigir al dashboard
+    // Si está autenticado, redirigir al dashboard de Filament
     if (auth()->check()) {
         return redirect('/admin');
     }

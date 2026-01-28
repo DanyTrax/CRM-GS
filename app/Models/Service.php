@@ -164,10 +164,10 @@ class Service extends Model
         }
 
         // Obtener configuración de cambio
-        $trmBase = \App\Models\Setting::get('trm_base', 4000);
-        $spread = \App\Models\Setting::get('bold_spread_percentage', 3);
+        $trmBase = (float) \App\Models\Setting::get('trm_base', 4000);
+        $spread = (float) \App\Models\Setting::get('bold_spread_percentage', 3);
         $toleranceType = \App\Models\Setting::get('exchange_tolerance_type', 'percentage'); // 'percentage' o 'fixed'
-        $toleranceValue = \App\Models\Setting::get('exchange_tolerance_value', 0);
+        $toleranceValue = (float) \App\Models\Setting::get('exchange_tolerance_value', 0);
 
         // Calcular TRM con spread
         $trmWithSpread = $trmBase * (1 + ($spread / 100));

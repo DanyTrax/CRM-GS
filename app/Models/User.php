@@ -21,6 +21,46 @@ class User extends Authenticatable
         'two_factor_recovery_codes',
         'avatar',
     ];
+    
+    /**
+     * Prevenir que se intente guardar campos que no existen
+     */
+    protected static function boot()
+    {
+        parent::boot();
+        
+        static::creating(function ($user) {
+            // Eliminar campos que no existen en la tabla
+            if (isset($user->attributes['two_factor_enabled'])) {
+                unset($user->attributes['two_factor_enabled']);
+            }
+            if (isset($user->attributes['google2fa_enabled'])) {
+                unset($user->attributes['google2fa_enabled']);
+            }
+            if (isset($user->attributes['google2fa_secret'])) {
+                unset($user->attributes['google2fa_secret']);
+            }
+            if (isset($user->attributes['status'])) {
+                unset($user->attributes['status']);
+            }
+        });
+        
+        static::updating(function ($user) {
+            // Eliminar campos que no existen en la tabla
+            if (isset($user->attributes['two_factor_enabled'])) {
+                unset($user->attributes['two_factor_enabled']);
+            }
+            if (isset($user->attributes['google2fa_enabled'])) {
+                unset($user->attributes['google2fa_enabled']);
+            }
+            if (isset($user->attributes['google2fa_secret'])) {
+                unset($user->attributes['google2fa_secret']);
+            }
+            if (isset($user->attributes['status'])) {
+                unset($user->attributes['status']);
+            }
+        });
+    }
 
     protected $hidden = [
         'password',

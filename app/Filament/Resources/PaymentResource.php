@@ -233,11 +233,6 @@ class PaymentResource extends Resource
         ];
     }
     
-    public static function canViewAny(): bool
-    {
-        return true; // Temporalmente permitir a todos, luego agregar permisos
-    }
-    
     public static function shouldRegisterNavigation(): bool
     {
         return true;

@@ -57,10 +57,21 @@ Route::post('/login', function () {
     return redirect()->route('filament.admin.auth.login');
 });
 
+// Logout: Filament maneja el logout en /admin/logout
+// Redirigir /logout a /admin/logout para mantener compatibilidad
+Route::get('/logout', function () {
+    auth()->logout();
+    request()->session()->invalidate();
+    request()->session()->regenerateToken();
+    return redirect()->route('filament.admin.auth.login');
+})->name('logout');
+
 Route::post('/logout', function () {
     auth()->logout();
-    return redirect()->route('login');
-})->name('logout');
+    request()->session()->invalidate();
+    request()->session()->regenerateToken();
+    return redirect()->route('filament.admin.auth.login');
+});
 
 // Rutas protegidas - Admin
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {

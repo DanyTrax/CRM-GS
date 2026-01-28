@@ -93,14 +93,15 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('invoices.pdf');
     Route::post('/invoices/{invoice}/mark-paid', [InvoiceController::class, 'markPaid'])->name('invoices.mark-paid');
     
-    // Pagos
-    Route::prefix('payments')->name('payments.')->group(function () {
-        Route::get('/', function () { return view('admin.payments.index'); })->name('index');
-        Route::get('/create', function () { return view('admin.payments.create'); })->name('create');
-        Route::post('/', function () { /* Implementar */ })->name('store');
-        Route::post('/{payment}/approve', function () { /* Implementar */ })->name('approve');
-        Route::post('/{payment}/reject', function () { /* Implementar */ })->name('reject');
-    });
+    // NOTA: Pagos ahora se maneja con Filament PaymentResource
+    // Las rutas tradicionales están comentadas para evitar conflictos
+    // Route::prefix('payments')->name('payments.')->group(function () {
+    //     Route::get('/', function () { return view('admin.payments.index'); })->name('index');
+    //     Route::get('/create', function () { return view('admin.payments.create'); })->name('create');
+    //     Route::post('/', function () { /* Implementar */ })->name('store');
+    //     Route::post('/{payment}/approve', function () { /* Implementar */ })->name('approve');
+    //     Route::post('/{payment}/reject', function () { /* Implementar */ })->name('reject');
+    // });
     
     // NOTA: Tickets ahora se maneja con Filament TicketResource
     // Las rutas tradicionales están comentadas para evitar conflictos

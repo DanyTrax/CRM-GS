@@ -449,11 +449,14 @@ class InstallController extends Controller
                 // Ignorar errores de caché
             }
             
-            // 11. Publicar assets de Filament
+            // 11. Publicar assets de Filament (CRÍTICO para que funcionen los estilos)
             try {
-                Artisan::call('filament:assets');
+                // Ejecutar el comando de Filament para publicar assets
+                $output = Artisan::call('filament:assets');
+                \Log::info('Assets de Filament publicados', ['output' => $output]);
             } catch (\Exception $e) {
-                // Ignorar si ya están publicados
+                \Log::warning('Error al publicar assets de Filament: ' . $e->getMessage());
+                // No lanzar excepción, pero registrar el error
             }
 
             return response()->json([

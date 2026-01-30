@@ -80,6 +80,13 @@ Route::post('/logout', function () {
     return redirect()->route('filament.admin.auth.login');
 });
 
+// Rutas de OAuth de Zoho (públicas para callback)
+Route::prefix('zoho')->name('zoho.')->group(function () {
+    Route::get('/oauth/authorize', [\App\Http\Controllers\ZohoOAuthController::class, 'authorize'])->name('oauth.authorize');
+    Route::get('/oauth/callback', [\App\Http\Controllers\ZohoOAuthController::class, 'callback'])->name('oauth.callback');
+    Route::post('/oauth/clear-token', [\App\Http\Controllers\ZohoOAuthController::class, 'clearToken'])->middleware('auth')->name('oauth.clear-token');
+});
+
 // Rutas protegidas - Admin
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
     

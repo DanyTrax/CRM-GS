@@ -10,6 +10,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Notifications\Notification;
+use Illuminate\Support\HtmlString;
 
 class EmailConfigurationResource extends Resource
 {
@@ -122,23 +123,186 @@ class EmailConfigurationResource extends Resource
                 
                 Forms\Components\Section::make('Configuración Zoho')
                     ->schema([
+                        Forms\Components\Placeholder::make('zoho_warning')
+                            ->label('')
+                            ->content(fn (Forms\Get $get) => new HtmlString('
+                                <div class="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                                    <p class="text-sm text-red-800 dark:text-red-200 font-medium mb-2">
+                                        ⚠️ Debes autorizar con la cuenta: <strong>' . ($get('from_email') ?? 'soporte@acdoblevia.com') . '</strong>
+                                    </p>
+                                    <p class="text-sm text-red-700 dark:text-red-300">
+                                        Cierra sesión en Zoho o usa ventana privada si sueles entrar con otro correo.
+                                    </p>
+                                </div>
+                            '))
+                            ->visible(fn (Forms\Get $get) => $get('provider') === 'zoho')
+                            ->columnSpanFull(),
+                        
                         Forms\Components\TextInput::make('zoho_client_id')
                             ->label('Client ID')
                             ->maxLength(255)
-                            ->visible(fn (Forms\Get $get) => $get('provider') === 'zoho'),
+                            ->required(fn (Forms\Get $get) => $get('provider') === 'zoho')
+                            ->visible(fn (Forms\Get $get) => $get('provider') === 'zoho')
+                            ->helperText('Client ID desde Zoho API Console'),
                         
                         Forms\Components\TextInput::make('zoho_client_secret')
                             ->label('Client Secret')
                             ->password()
                             ->maxLength(255)
-                            ->visible(fn (Forms\Get $get) => $get('provider') === 'zoho'),
+                            ->required(fn (Forms\Get $get) => $get('provider') === 'zoho')
+                            ->visible(fn (Forms\Get $get) => $get('provider') === 'zoho')
+                            ->helperText('Client Secret desde Zoho API Console'),
+                        
+                        Forms\Components\Placeholder::make('zoho_authorize_section')
+                            ->label('Generación Automática de Refresh Token')
+                            ->content(fn (Forms\Get $get) => new HtmlString('
+                                <div class="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg mb-4">
+                                    <p class="text-sm text-green-800 dark:text-green-200 mb-3">
+                                        Redirige a Zoho para autorizar y obtiene el Refresh Token automáticamente. Usa la misma cuenta que el Email Remitente.
+                                    </p>
+                                    <div id="zoho-authorize-button-container"></div>
+                                    <p class="text-xs text-green-700 dark:text-green-300 mt-3 flex items-center gap-2">
+                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                                        </svg>
+                                        <span>Redirect URI en Zoho API Console configurada y cambios guardados antes de hacer clic.</span>
+                                    </p>
+                                </div>
+                            '))
+                            ->visible(fn (Forms\Get $get, $record) => $get('provider') === 'zoho' && $record && $record->zoho_client_id && $record->zoho_client_secret)
+                            ->columnSpanFull(),
                         
                         Forms\Components\Textarea::make('zoho_refresh_token')
                             ->label('Refresh Token')
                             ->rows(3)
                             ->columnSpanFull()
                             ->visible(fn (Forms\Get $get) => $get('provider') === 'zoho')
-                            ->helperText('Token de actualización de Zoho (se obtiene mediante OAuth)'),
+                            ->disabled()
+                            ->dehydrated()
+                            ->helperText('Token de actualización de Zoho (generado automáticamente)'),
+                        
+                        Forms\Components\Placeholder::make('zoho_token_status')
+                            ->label('')
+                            ->content(function ($record) {
+                                if (!$record || !$record->zoho_refresh_token) {
+                                    return new \Illuminate\Support\HtmlString('
+                                        <div class="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                                            <p class="text-sm text-yellow-800 dark:text-yellow-200">
+                                                ⚠️ Refresh Token no configurado. Usa el botón de autorización arriba para generarlo.
+                                            </p>
+                                        </div>
+                                    ');
+                                }
+                                
+                                return new \Illuminate\Support\HtmlString('
+                                    <div class="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                                        <p class="text-sm text-green-800 dark:text-green-200 flex items-center gap-2">
+                                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                            </svg>
+                                            <span>Refresh Token configurado correctamente</span>
+                                        </p>
+                                    </div>
+                                ');
+                            })
+                            ->visible(fn (Forms\Get $get) => $get('provider') === 'zoho')
+                            ->columnSpanFull(),
+                        
+                        Forms\Components\Placeholder::make('zoho_error_help')
+                            ->label('')
+                            ->content(fn () => new HtmlString('
+                                <div class="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                                    <p class="text-sm text-yellow-800 dark:text-yellow-200 flex items-start gap-2">
+                                        <svg class="w-5 h-5 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                        </svg>
+                                        <span>
+                                            <strong>Si recibes el error "URL_RULE_NOT_CONFIGURED":</strong> Haz clic en "Limpiar" arriba, guarda los cambios, y luego usa el botón "Autorizar con Zoho" para regenerar el token.
+                                        </span>
+                                    </p>
+                                </div>
+                            '))
+                            ->visible(fn (Forms\Get $get) => $get('provider') === 'zoho')
+                            ->columnSpanFull(),
+                        
+                        Forms\Components\Placeholder::make('zoho_instructions')
+                            ->label('¿Cómo funciona el botón?')
+                            ->content(fn (Forms\Get $get) => new HtmlString('
+                                <div class="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                                    <ol class="list-decimal list-inside space-y-2 text-sm text-blue-800 dark:text-blue-200">
+                                        <li>Envía el Client ID a Zoho para iniciar la autorización</li>
+                                        <li>Zoho redirige a la página de autorización</li>
+                                        <li>Inicias sesión con la cuenta correcta (' . ($get('from_email') ?? 'soporte@acdoblevia.com') . ')</li>
+                                        <li>Autorizas la aplicación</li>
+                                        <li>Zoho redirige de vuelta con un código de autorización</li>
+                                        <li>El sistema intercambia el código por el Refresh Token y lo guarda automáticamente</li>
+                                    </ol>
+                                </div>
+                            '))
+                            ->visible(fn (Forms\Get $get) => $get('provider') === 'zoho')
+                            ->columnSpanFull(),
+                        
+                        Forms\Components\Placeholder::make('zoho_verification')
+                            ->label('Verificación de Configuración')
+                            ->content(function ($record) {
+                                if (!$record) {
+                                    return new \Illuminate\Support\HtmlString('<p class="text-sm text-gray-600 dark:text-gray-400">Guarda primero para verificar</p>');
+                                }
+                                
+                                $checks = [];
+                                $allPassed = true;
+                                
+                                if ($record->zoho_client_id) {
+                                    $checks[] = ['label' => 'Client ID configurado', 'passed' => true];
+                                } else {
+                                    $checks[] = ['label' => 'Client ID configurado', 'passed' => false];
+                                    $allPassed = false;
+                                }
+                                
+                                if ($record->zoho_client_secret) {
+                                    $checks[] = ['label' => 'Client Secret configurado', 'passed' => true];
+                                } else {
+                                    $checks[] = ['label' => 'Client Secret configurado', 'passed' => false];
+                                    $allPassed = false;
+                                }
+                                
+                                if ($record->zoho_refresh_token) {
+                                    $checks[] = ['label' => 'Refresh Token configurado', 'passed' => true];
+                                } else {
+                                    $checks[] = ['label' => 'Refresh Token configurado', 'passed' => false];
+                                    $allPassed = false;
+                                }
+                                
+                                $icon = $allPassed 
+                                    ? '<svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>'
+                                    : '<svg class="w-5 h-5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>';
+                                
+                                $bgColor = $allPassed ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800';
+                                $textColor = $allPassed ? 'text-green-800 dark:text-green-200' : 'text-yellow-800 dark:text-yellow-200';
+                                
+                                $checksHtml = '';
+                                foreach ($checks as $check) {
+                                    $checkIcon = $check['passed'] 
+                                        ? '<svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>'
+                                        : '<svg class="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>';
+                                    
+                                    $checksHtml .= '<li class="flex items-center gap-2 ' . ($check['passed'] ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300') . '">' . $checkIcon . '<span>' . $check['label'] . '</span></li>';
+                                }
+                                
+                                return new \Illuminate\Support\HtmlString('
+                                    <div class="p-4 ' . $bgColor . ' border rounded-lg">
+                                        <div class="flex items-center gap-2 ' . $textColor . ' mb-3">
+                                            ' . $icon . '
+                                            <span class="font-medium">' . ($allPassed ? 'Configuración correcta' : 'Configuración incompleta') . '</span>
+                                        </div>
+                                        <ul class="space-y-1 text-sm">
+                                            ' . $checksHtml . '
+                                        </ul>
+                                    </div>
+                                ');
+                            })
+                            ->visible(fn (Forms\Get $get) => $get('provider') === 'zoho')
+                            ->columnSpanFull(),
                     ])
                     ->visible(fn (Forms\Get $get) => $get('provider') === 'zoho'),
                 

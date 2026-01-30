@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Models\EmailConfiguration;
+use App\Models\MessageHistory;
 use Filament\Forms;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -110,10 +111,11 @@ class SendTestEmail extends Page implements HasForms
             }
 
             // Enviar según el proveedor
+            $messageHistory = null;
             if ($config->provider === 'smtp') {
-                $this->sendViaSMTP($config, $data);
+                $messageHistory = $this->sendViaSMTP($config, $data);
             } elseif ($config->provider === 'zoho') {
-                $this->sendViaZoho($config, $data);
+                $messageHistory = $this->sendViaZoho($config, $data);
             } else {
                 throw new \Exception('Proveedor no soportado para envío de prueba.');
             }
@@ -146,7 +148,7 @@ class SendTestEmail extends Page implements HasForms
         }
     }
 
-    protected function sendViaSMTP(EmailConfiguration $config, array $data): void
+    protected function sendViaSMTP(EmailConfiguration $config, array $data): MessageHistory
     {
         // Validar configuración SMTP
         if (!$config->smtp_host || !$config->smtp_port) {
@@ -156,22 +158,47 @@ class SendTestEmail extends Page implements HasForms
         // Aplicar configuración
         $config->applyToMailConfig();
 
-        // Enviar email
-        Mail::raw($data['body'], function ($message) use ($config, $data) {
-            $message->to($data['to'])
-                ->subject($data['subject']);
+        // Crear registro en historial antes de enviar
+        $messageHistory = MessageHistory::create([
+            'message_type' => 'email',
+            'recipient_type' => 'user',
+            'recipient_email' => $data['to'],
+            'subject' => $data['subject'],
+            'body' => $data['body'],
+            'template_type' => 'test',
+            'status' => 'pending',
+            'provider' => 'smtp',
+            'sent_by' => auth()->id(),
+        ]);
 
-            if ($config->from_email) {
-                $message->from($config->from_email, $config->from_name);
-            }
+        try {
+            // Enviar email
+            Mail::raw($data['body'], function ($message) use ($config, $data) {
+                $message->to($data['to'])
+                    ->subject($data['subject']);
 
-            if ($config->reply_to_email) {
-                $message->replyTo($config->reply_to_email, $config->reply_to_name);
-            }
-        });
+                if ($config->from_email) {
+                    $message->from($config->from_email, $config->from_name);
+                }
+
+                if ($config->reply_to_email) {
+                    $message->replyTo($config->reply_to_email, $config->reply_to_name);
+                }
+            });
+
+            // Marcar como enviado
+            $messageHistory->markAsSent();
+
+        } catch (\Exception $e) {
+            // Marcar como fallido
+            $messageHistory->markAsFailed($e->getMessage());
+            throw $e;
+        }
+
+        return $messageHistory;
     }
 
-    protected function sendViaZoho(EmailConfiguration $config, array $data): void
+    protected function sendViaZoho(EmailConfiguration $config, array $data): MessageHistory
     {
         // Validar configuración Zoho
         if (!$config->zoho_client_id || !$config->zoho_client_secret) {
@@ -182,28 +209,57 @@ class SendTestEmail extends Page implements HasForms
             throw new \Exception('Refresh Token no configurado. Debes autorizar con Zoho primero.');
         }
 
-        // Obtener Access Token
-        $accessToken = $this->getZohoAccessToken($config);
-
-        // Obtener Account ID
-        $accountId = $this->getZohoAccountId($config, $accessToken);
-
-        // Enviar email usando Zoho Mail API
-        $response = Http::withHeaders([
-            'Authorization' => 'Zoho-oauthtoken ' . $accessToken,
-            'Content-Type' => 'application/json',
-        ])->post("https://mail.zoho.com/api/accounts/{$accountId}/messages", [
-            'fromAddress' => $config->from_email,
-            'toAddress' => $data['to'],
+        // Crear registro en historial antes de enviar
+        $messageHistory = MessageHistory::create([
+            'message_type' => 'email',
+            'recipient_type' => 'user',
+            'recipient_email' => $data['to'],
             'subject' => $data['subject'],
-            'content' => $data['body'],
-            'mailFormat' => 'html',
+            'body' => $data['body'],
+            'template_type' => 'test',
+            'status' => 'pending',
+            'provider' => 'zoho',
+            'sent_by' => auth()->id(),
         ]);
 
-        if (!$response->successful()) {
-            $error = $response->json();
-            throw new \Exception('Error al enviar email vía Zoho: ' . ($error['message'] ?? 'Error desconocido'));
+        try {
+            // Obtener Access Token
+            $accessToken = $this->getZohoAccessToken($config);
+
+            // Obtener Account ID
+            $accountId = $this->getZohoAccountId($config, $accessToken);
+
+            // Enviar email usando Zoho Mail API
+            $response = Http::withHeaders([
+                'Authorization' => 'Zoho-oauthtoken ' . $accessToken,
+                'Content-Type' => 'application/json',
+            ])->post("https://mail.zoho.com/api/accounts/{$accountId}/messages", [
+                'fromAddress' => $config->from_email,
+                'toAddress' => $data['to'],
+                'subject' => $data['subject'],
+                'content' => $data['body'],
+                'mailFormat' => 'html',
+            ]);
+
+            if (!$response->successful()) {
+                $error = $response->json();
+                throw new \Exception('Error al enviar email vía Zoho: ' . ($error['message'] ?? 'Error desconocido'));
+            }
+
+            // Obtener external_id de la respuesta si está disponible
+            $responseData = $response->json();
+            $externalId = $responseData['data']['messageId'] ?? $responseData['messageId'] ?? null;
+
+            // Marcar como enviado
+            $messageHistory->markAsSent($externalId);
+
+        } catch (\Exception $e) {
+            // Marcar como fallido
+            $messageHistory->markAsFailed($e->getMessage());
+            throw $e;
         }
+
+        return $messageHistory;
     }
 
     protected function getZohoAccessToken(EmailConfiguration $config): string

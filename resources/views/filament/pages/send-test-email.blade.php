@@ -2,7 +2,7 @@
     <form wire:submit="send">
         {{ $this->form }}
 
-        <x-filament-panels::form.actions
+        <x-filament::form.actions
             :actions="$this->getCachedFormActions()"
             :full-width="$this->hasFullWidthFormActions()"
         />

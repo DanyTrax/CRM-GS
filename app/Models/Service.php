@@ -13,6 +13,7 @@ class Service extends Model
 
     protected $fillable = [
         'client_id',
+        'product_id',
         'name',
         'description',
         'type',
@@ -39,6 +40,14 @@ class Service extends Model
     public function client()
     {
         return $this->belongsTo(Client::class);
+    }
+
+    /**
+     * Producto del cual se creó el servicio (opcional)
+     */
+    public function product()
+    {
+        return $this->belongsTo(Product::class);
     }
 
     /**

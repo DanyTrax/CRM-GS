@@ -20,3 +20,5 @@ storage/app/.installed
 *.log
 bootstrap/cache/*.php
 !bootstrap/cache/.gitkeep
+public/css/filament/
+public/js/filament/

@@ -7,6 +7,7 @@ use App\Models\Service;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\Alert;
+use App\Services\AlertEmailService;
 use Carbon\Carbon;
 
 class GenerateAlerts extends Command
@@ -116,6 +117,12 @@ class GenerateAlerts extends Command
         }
 
         $this->info("✅ Alertas generadas: {$alertsCreated}");
+
+        // Enviar alertas pendientes por email
+        $this->info('Enviando alertas pendientes por email...');
+        $emailService = new AlertEmailService();
+        $sentCount = $emailService->sendPendingAlerts();
+        $this->info("✅ Alertas enviadas por email: {$sentCount}");
         
         return 0;
     }

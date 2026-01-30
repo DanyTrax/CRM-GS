@@ -13,7 +13,7 @@ class ZohoOAuthController extends Controller
     /**
      * Iniciar autorización con Zoho
      */
-    public function authorize(Request $request)
+    public function startAuthorization(Request $request)
     {
         $request->validate([
             'config_id' => 'required|exists:email_configurations,id',

@@ -82,7 +82,7 @@ Route::post('/logout', function () {
 
 // Rutas de OAuth de Zoho (públicas para callback)
 Route::prefix('zoho')->name('zoho.')->group(function () {
-    Route::get('/oauth/authorize', [\App\Http\Controllers\ZohoOAuthController::class, 'authorize'])->name('oauth.authorize');
+    Route::get('/oauth/authorize', [\App\Http\Controllers\ZohoOAuthController::class, 'startAuthorization'])->name('oauth.authorize');
     Route::get('/oauth/callback', [\App\Http\Controllers\ZohoOAuthController::class, 'callback'])->name('oauth.callback');
     Route::post('/oauth/clear-token', [\App\Http\Controllers\ZohoOAuthController::class, 'clearToken'])->middleware('auth')->name('oauth.clear-token');
 });

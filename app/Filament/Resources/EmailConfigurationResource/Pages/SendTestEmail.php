@@ -30,7 +30,7 @@ class SendTestEmail extends Page implements HasForms
     
     protected static ?string $navigationGroup = 'Mensajería';
     
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 4;
     
     public static function shouldRegisterNavigation(array $parameters = []): bool
     {

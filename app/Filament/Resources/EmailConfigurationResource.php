@@ -580,6 +580,12 @@ class EmailConfigurationResource extends Resource
             'index' => Pages\ListEmailConfigurations::route('/'),
             'create' => Pages\CreateEmailConfiguration::route('/create'),
             'edit' => Pages\EditEmailConfiguration::route('/{record}/edit'),
+            'send-test-email' => Pages\SendTestEmail::route('/send-test-email'),
         ];
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return true;
     }
 }

@@ -5,6 +5,8 @@ namespace App\Filament\Resources\EmailConfigurationResource\Pages;
 use App\Filament\Resources\EmailConfigurationResource;
 use App\Models\EmailConfiguration;
 use Filament\Forms;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Filament\Resources\Pages\Page;
 use Filament\Notifications\Notification;
@@ -12,8 +14,10 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-class SendTestEmail extends Page
+class SendTestEmail extends Page implements HasForms
 {
+    use InteractsWithForms;
+
     protected static string $resource = EmailConfigurationResource::class;
 
     protected static string $view = 'filament.resources.email-configuration-resource.pages.send-test-email';
@@ -21,6 +25,17 @@ class SendTestEmail extends Page
     protected static ?string $title = 'Enviar Email de Prueba';
 
     protected static ?string $navigationLabel = 'Enviar Email de Prueba';
+    
+    protected static ?string $navigationIcon = 'heroicon-o-paper-airplane';
+    
+    protected static ?string $navigationGroup = 'Mensajería';
+    
+    protected static ?int $navigationSort = 3;
+    
+    public static function shouldRegisterNavigation(): bool
+    {
+        return true;
+    }
 
     public ?array $data = [];
 

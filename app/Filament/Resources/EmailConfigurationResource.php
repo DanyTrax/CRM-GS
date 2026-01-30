@@ -123,10 +123,28 @@ class EmailConfigurationResource extends Resource
                 
                 Forms\Components\Section::make('Configuración Zoho')
                     ->schema([
+                        Forms\Components\Placeholder::make('zoho_redirect_uri')
+                            ->label('Paso 1: Configurar Redirect URI en Zoho API Console')
+                            ->content(fn () => new HtmlString('
+                                <div class="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg mb-4">
+                                    <p class="text-sm text-blue-800 dark:text-blue-200 font-medium mb-2">
+                                        📋 Copia esta URL y configúrala como Redirect URI en Zoho API Console:
+                                    </p>
+                                    <div class="bg-white dark:bg-gray-800 p-3 rounded border border-blue-300 dark:border-blue-700">
+                                        <code class="text-sm text-blue-900 dark:text-blue-100 break-all">' . route('zoho.oauth.callback') . '</code>
+                                    </div>
+                                    <p class="text-xs text-blue-700 dark:text-blue-300 mt-2">
+                                        Ve a <a href="https://api-console.zoho.com/" target="_blank" class="underline font-medium">Zoho API Console</a>, crea una aplicación y pega esta URL en "Redirect URI"
+                                    </p>
+                                </div>
+                            '))
+                            ->visible(fn (Forms\Get $get) => $get('provider') === 'zoho')
+                            ->columnSpanFull(),
+                        
                         Forms\Components\Placeholder::make('zoho_warning')
                             ->label('')
                             ->content(fn (Forms\Get $get) => new HtmlString('
-                                <div class="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                                <div class="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg mb-4">
                                     <p class="text-sm text-red-800 dark:text-red-200 font-medium mb-2">
                                         ⚠️ Debes autorizar con la cuenta: <strong>' . ($get('from_email') ?? 'soporte@acdoblevia.com') . '</strong>
                                     </p>
@@ -139,14 +157,14 @@ class EmailConfigurationResource extends Resource
                             ->columnSpanFull(),
                         
                         Forms\Components\TextInput::make('zoho_client_id')
-                            ->label('Client ID')
+                            ->label('Paso 2: Client ID')
                             ->maxLength(255)
                             ->required(fn (Forms\Get $get) => $get('provider') === 'zoho')
                             ->visible(fn (Forms\Get $get) => $get('provider') === 'zoho')
-                            ->helperText('Client ID desde Zoho API Console'),
+                            ->helperText('Client ID desde Zoho API Console (después de crear la aplicación)'),
                         
                         Forms\Components\TextInput::make('zoho_client_secret')
-                            ->label('Client Secret')
+                            ->label('Paso 3: Client Secret')
                             ->password()
                             ->maxLength(255)
                             ->required(fn (Forms\Get $get) => $get('provider') === 'zoho')
@@ -154,22 +172,56 @@ class EmailConfigurationResource extends Resource
                             ->helperText('Client Secret desde Zoho API Console'),
                         
                         Forms\Components\Placeholder::make('zoho_authorize_section')
-                            ->label('Generación Automática de Refresh Token')
-                            ->content(fn (Forms\Get $get) => new HtmlString('
-                                <div class="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg mb-4">
-                                    <p class="text-sm text-green-800 dark:text-green-200 mb-3">
-                                        Redirige a Zoho para autorizar y obtiene el Refresh Token automáticamente. Usa la misma cuenta que el Email Remitente.
-                                    </p>
-                                    <div id="zoho-authorize-button-container"></div>
-                                    <p class="text-xs text-green-700 dark:text-green-300 mt-3 flex items-center gap-2">
-                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                                        </svg>
-                                        <span>Redirect URI en Zoho API Console configurada y cambios guardados antes de hacer clic.</span>
-                                    </p>
-                                </div>
-                            '))
-                            ->visible(fn (Forms\Get $get, $record) => $get('provider') === 'zoho' && $record && $record->zoho_client_id && $record->zoho_client_secret)
+                            ->label('Paso 4: Autorizar con Zoho')
+                            ->content(function (Forms\Get $get, $record) {
+                                $hasCredentials = ($record && $record->zoho_client_id && $record->zoho_client_secret) || 
+                                                  ($get('zoho_client_id') && $get('zoho_client_secret'));
+                                $configId = $record ? $record->id : null;
+                                $authorizeUrl = $configId ? route('zoho.oauth.authorize', ['config_id' => $configId]) : '#';
+                                
+                                if (!$hasCredentials) {
+                                    return new HtmlString('
+                                        <div class="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg mb-4">
+                                            <p class="text-sm text-yellow-800 dark:text-yellow-200 mb-2">
+                                                ⚠️ Completa los pasos 2 y 3 (Client ID y Client Secret) y guarda los cambios para habilitar la autorización.
+                                            </p>
+                                            <button disabled class="inline-flex items-center gap-2 px-4 py-2 bg-gray-400 text-white font-medium rounded-lg cursor-not-allowed opacity-50">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                </svg>
+                                                <span>Autorizar con Zoho y Generar Refresh Token Automáticamente</span>
+                                            </button>
+                                        </div>
+                                    ');
+                                }
+                                
+                                return new HtmlString('
+                                    <div class="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg mb-4">
+                                        <p class="text-sm text-green-800 dark:text-green-200 mb-3">
+                                            Redirige a Zoho para autorizar y obtiene el Refresh Token automáticamente. Usa la misma cuenta que el Email Remitente.
+                                        </p>
+                                        <div id="zoho-authorize-button-container">
+                                            <a href="' . $authorizeUrl . '" 
+                                               class="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-lg transition-colors">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                </svg>
+                                                <span>Autorizar con Zoho y Generar Refresh Token Automáticamente</span>
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                                </svg>
+                                            </a>
+                                        </div>
+                                        <p class="text-xs text-green-700 dark:text-green-300 mt-3 flex items-center gap-2">
+                                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                                            </svg>
+                                            <span>Asegúrate de haber guardado los cambios antes de hacer clic.</span>
+                                        </p>
+                                    </div>
+                                ');
+                            })
+                            ->visible(fn (Forms\Get $get) => $get('provider') === 'zoho')
                             ->columnSpanFull(),
                         
                         Forms\Components\Textarea::make('zoho_refresh_token')
@@ -312,7 +364,10 @@ class EmailConfigurationResource extends Resource
                             ->label('Email Remitente')
                             ->email()
                             ->required()
-                            ->maxLength(255),
+                            ->maxLength(255)
+                            ->helperText(fn (Forms\Get $get) => $get('provider') === 'zoho' 
+                                ? 'Este debe ser el mismo correo con el que autorizarás en Zoho (Paso 5)' 
+                                : 'Email desde el cual se enviarán los correos'),
                         
                         Forms\Components\TextInput::make('from_name')
                             ->label('Nombre Remitente')

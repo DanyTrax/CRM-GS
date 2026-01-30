@@ -71,14 +71,23 @@ class EmailConfiguration extends Model
      */
     public function applyToMailConfig(): void
     {
+        // Configurar remitente siempre
         config([
-            'mail.mailers.smtp.host' => $this->smtp_host,
-            'mail.mailers.smtp.port' => $this->smtp_port,
-            'mail.mailers.smtp.encryption' => $this->smtp_encryption,
-            'mail.mailers.smtp.username' => $this->smtp_username,
-            'mail.mailers.smtp.password' => $this->smtp_password,
             'mail.from.address' => $this->from_email,
             'mail.from.name' => $this->from_name,
         ]);
+
+        // Solo aplicar configuración SMTP si el proveedor es SMTP
+        if ($this->provider === 'smtp') {
+            config([
+                'mail.mailers.smtp.host' => $this->smtp_host ?? 'localhost',
+                'mail.mailers.smtp.port' => $this->smtp_port ?? 587,
+                'mail.mailers.smtp.encryption' => $this->smtp_encryption ?? 'tls',
+                'mail.mailers.smtp.username' => $this->smtp_username,
+                'mail.mailers.smtp.password' => $this->smtp_password,
+            ]);
+        }
+        // Para Zoho, la configuración se maneja de manera diferente
+        // (requiere implementación personalizada o librería específica)
     }
 }

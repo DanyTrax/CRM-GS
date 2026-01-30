@@ -463,8 +463,14 @@ class EmailConfigurationResource extends Resource
                     ->icon('heroicon-o-paper-airplane')
                     ->color('info')
                     ->requiresConfirmation()
+                    ->visible(fn (EmailConfiguration $record) => $record->provider === 'smtp')
                     ->action(function (EmailConfiguration $record) {
                         try {
+                            // Validar que tenga configuración SMTP completa
+                            if (!$record->smtp_host || !$record->smtp_port) {
+                                throw new \Exception('La configuración SMTP está incompleta. Verifica Host y Puerto.');
+                            }
+
                             // Aplicar configuración temporalmente
                             $record->applyToMailConfig();
                             
@@ -484,6 +490,60 @@ class EmailConfigurationResource extends Resource
                                 ->title('Error al enviar email de prueba')
                                 ->body($e->getMessage())
                                 ->danger()
+                                ->send();
+                        }
+                    }),
+                
+                Tables\Actions\Action::make('test_zoho')
+                    ->label('Verificar Configuración Zoho')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('success')
+                    ->visible(fn (EmailConfiguration $record) => $record->provider === 'zoho')
+                    ->action(function (EmailConfiguration $record) {
+                        $checks = [];
+                        $allPassed = true;
+
+                        if ($record->zoho_client_id) {
+                            $checks[] = '✅ Client ID configurado';
+                        } else {
+                            $checks[] = '❌ Client ID no configurado';
+                            $allPassed = false;
+                        }
+
+                        if ($record->zoho_client_secret) {
+                            $checks[] = '✅ Client Secret configurado';
+                        } else {
+                            $checks[] = '❌ Client Secret no configurado';
+                            $allPassed = false;
+                        }
+
+                        if ($record->zoho_refresh_token) {
+                            $checks[] = '✅ Refresh Token configurado';
+                        } else {
+                            $checks[] = '❌ Refresh Token no configurado (debe autorizar con Zoho)';
+                            $allPassed = false;
+                        }
+
+                        if ($record->from_email) {
+                            $checks[] = '✅ Email Remitente configurado';
+                        } else {
+                            $checks[] = '❌ Email Remitente no configurado';
+                            $allPassed = false;
+                        }
+
+                        $message = implode("\n", $checks);
+
+                        if ($allPassed) {
+                            Notification::make()
+                                ->title('Configuración Zoho completa')
+                                ->body($message)
+                                ->success()
+                                ->send();
+                        } else {
+                            Notification::make()
+                                ->title('Configuración Zoho incompleta')
+                                ->body($message)
+                                ->warning()
                                 ->send();
                         }
                     }),

@@ -234,4 +234,9 @@ class MessageHistoryResource extends Resource
             'index' => Pages\ListMessageHistory::route('/'),
         ];
     }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return true;
+    }
 }

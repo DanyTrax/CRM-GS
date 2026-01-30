@@ -266,4 +266,9 @@ class NotificationSettingResource extends Resource
             'edit' => Pages\EditNotificationSetting::route('/{record}/edit'),
         ];
     }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return true;
+    }
 }

@@ -32,7 +32,7 @@ class SendTestEmail extends Page implements HasForms
     
     protected static ?int $navigationSort = 3;
     
-    public static function shouldRegisterNavigation(): bool
+    public static function shouldRegisterNavigation(array $parameters = []): bool
     {
         return true;
     }

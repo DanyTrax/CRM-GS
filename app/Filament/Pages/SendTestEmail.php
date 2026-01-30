@@ -268,21 +268,11 @@ class SendTestEmail extends Page implements HasForms
     protected function getFormActions(): array
     {
         return [
-            Forms\Components\Actions\Action::make('send')
+            \Filament\Actions\Action::make('send')
                 ->label('Enviar Email de Prueba')
                 ->icon('heroicon-o-paper-airplane')
                 ->color('primary')
                 ->action('send'),
         ];
-    }
-    
-    public function getCachedFormActions(): array
-    {
-        return $this->getFormActions();
-    }
-    
-    public function hasFullWidthFormActions(): bool
-    {
-        return false;
     }
 }

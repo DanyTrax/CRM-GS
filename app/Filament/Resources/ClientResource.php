@@ -43,6 +43,17 @@ class ClientResource extends Resource
                             ->required()
                             ->maxLength(255)
                             ->columnSpanFull(),
+                        Forms\Components\Select::make('id_type')
+                            ->label('Tipo de Identificación')
+                            ->options([
+                                'CC' => 'Cédula de Ciudadanía',
+                                'NIT' => 'NIT',
+                                'CE' => 'Cédula de Extranjería',
+                                'PP' => 'Pasaporte',
+                                'TI' => 'Tarjeta de Identidad',
+                            ])
+                            ->default('NIT')
+                            ->required(),
                         Forms\Components\TextInput::make('tax_id')
                             ->label('NIT/Cédula')
                             ->maxLength(255),

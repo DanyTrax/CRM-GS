@@ -58,6 +58,6 @@ class Client extends Model
      */
     public function isActive(): bool
     {
-        return $this->status === 'activo';
+        return $this->status === 'active';
     }
 }

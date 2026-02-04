@@ -60,11 +60,11 @@ class ClientResource extends Resource
                         Forms\Components\Select::make('status')
                             ->label('Estado')
                             ->options([
-                                'borrador' => 'Borrador',
-                                'activo' => 'Activo',
-                                'suspendido' => 'Suspendido',
+                                'draft' => 'Borrador',
+                                'active' => 'Activo',
+                                'suspended' => 'Suspendido',
                             ])
-                            ->default('borrador')
+                            ->default('draft')
                             ->required(),
                     ])
                     ->columns(2),
@@ -112,12 +112,19 @@ class ClientResource extends Resource
                 Tables\Columns\TextColumn::make('phone')
                     ->label('Teléfono')
                     ->searchable(),
-                Tables\Columns\BadgeColumn::make('status')
+                Tables\Columns\TextColumn::make('status')
                     ->label('Estado')
+                    ->badge()
+                    ->formatStateUsing(fn (string $state): string => match($state) {
+                        'draft' => 'Borrador',
+                        'active' => 'Activo',
+                        'suspended' => 'Suspendido',
+                        default => $state,
+                    })
                     ->colors([
-                        'warning' => 'borrador',
-                        'success' => 'activo',
-                        'danger' => 'suspendido',
+                        'warning' => 'draft',
+                        'success' => 'active',
+                        'danger' => 'suspended',
                     ]),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Creado')
@@ -129,9 +136,9 @@ class ClientResource extends Resource
                 Tables\Filters\SelectFilter::make('status')
                     ->label('Estado')
                     ->options([
-                        'borrador' => 'Borrador',
-                        'activo' => 'Activo',
-                        'suspendido' => 'Suspendido',
+                        'draft' => 'Borrador',
+                        'active' => 'Activo',
+                        'suspended' => 'Suspendido',
                     ]),
             ])
             ->actions([

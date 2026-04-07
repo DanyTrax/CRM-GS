@@ -251,7 +251,8 @@ class DiagnoseFilament extends Command
         // Verificar rutas específicas esperadas
         $expectedRoutes = [
             'filament.admin.pages.dashboard',
-            'filament.admin.pages.settings',
+            'filament.admin.pages.settings.moneda',
+            'filament.admin.pages.settings.actualizacion',
             'filament.admin.resources.clients.index',
             'filament.admin.resources.tickets.index',
             'filament.admin.resources.services.index',

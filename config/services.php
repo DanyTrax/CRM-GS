@@ -44,4 +44,12 @@ return [
         'refresh_token' => env('GOOGLE_DRIVE_REFRESH_TOKEN'),
     ],
 
+    /*
+    | Git pull y mantenimiento desde el panel (solo super-admin).
+    | Desactivar con WEB_DEPLOY_ENABLED=false en producción si no deseas esta función.
+    */
+    'web_deploy' => [
+        'enabled' => env('WEB_DEPLOY_ENABLED', true),
+    ],
+
 ];

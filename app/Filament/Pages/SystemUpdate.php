@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Pages\Concerns\HasSettingsSubNavigation;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
@@ -10,6 +11,8 @@ use Illuminate\Support\Facades\Process;
 
 class SystemUpdate extends Page
 {
+    use HasSettingsSubNavigation;
+
     protected static string $view = 'filament.pages.system-update';
 
     protected static ?string $navigationIcon = 'heroicon-o-arrow-path';

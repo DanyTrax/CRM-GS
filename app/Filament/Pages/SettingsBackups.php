@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Pages\Concerns\HasSettingsSubNavigation;
 use App\Filament\Pages\Concerns\PersistsSystemSettings;
 use App\Models\Setting;
 use Filament\Forms;
@@ -14,13 +15,14 @@ use Filament\Pages\Page;
 class SettingsBackups extends Page implements HasForms
 {
     use InteractsWithForms;
+    use HasSettingsSubNavigation;
     use PersistsSystemSettings;
 
     protected static string $view = 'filament.pages.settings';
 
     protected static ?string $navigationIcon = 'heroicon-o-cloud-arrow-up';
 
-    protected static ?string $navigationLabel = 'Backups';
+    protected static ?string $navigationLabel = 'Conexión Google Drive';
 
     protected static ?string $title = 'Configuración de Backups';
 

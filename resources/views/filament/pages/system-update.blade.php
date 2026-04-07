@@ -34,28 +34,27 @@
             <h3 class="mb-3 text-base font-semibold text-gray-950 dark:text-white">Comandos Laravel</h3>
             <div class="flex flex-wrap gap-2">
                 @php
-                    $btn =
-                        'rounded-lg px-3 py-2 text-sm font-semibold text-white shadow-sm outline-none transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary-500 disabled:pointer-events-none disabled:opacity-50';
+                    $btn = 'border:none;border-radius:0.5rem;padding:0.5rem 0.8rem;font-size:0.875rem;font-weight:600;color:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);cursor:pointer;';
                 @endphp
-                <button type="button" wire:click="artisanViewClear" wire:loading.attr="disabled" class="{{ $btn }} bg-slate-600">
+                <button type="button" wire:click="artisanViewClear" wire:loading.attr="disabled" style="{{ $btn }}background:#475569;">
                     view:clear
                 </button>
-                <button type="button" wire:click="artisanCacheClear" wire:loading.attr="disabled" class="{{ $btn }} bg-sky-600">
+                <button type="button" wire:click="artisanCacheClear" wire:loading.attr="disabled" style="{{ $btn }}background:#0284c7;">
                     cache:clear
                 </button>
-                <button type="button" wire:click="artisanViewAndCacheClear" wire:loading.attr="disabled" class="{{ $btn }} bg-fuchsia-600">
+                <button type="button" wire:click="artisanViewAndCacheClear" wire:loading.attr="disabled" style="{{ $btn }}background:#c026d3;">
                     view:clear + cache:clear
                 </button>
-                <button type="button" wire:click="artisanConfigClear" wire:loading.attr="disabled" class="{{ $btn }} bg-amber-500">
+                <button type="button" wire:click="artisanConfigClear" wire:loading.attr="disabled" style="{{ $btn }}background:#f59e0b;">
                     config:clear
                 </button>
-                <button type="button" wire:click="artisanRouteClear" wire:loading.attr="disabled" class="{{ $btn }} bg-emerald-600">
+                <button type="button" wire:click="artisanRouteClear" wire:loading.attr="disabled" style="{{ $btn }}background:#059669;">
                     route:clear
                 </button>
-                <button type="button" wire:click="artisanOptimizeClear" wire:confirm="¿Limpiar toda la caché optimizada (optimize:clear)?" wire:loading.attr="disabled" class="{{ $btn }} bg-red-600">
+                <button type="button" wire:click="artisanOptimizeClear" wire:confirm="¿Limpiar toda la caché optimizada (optimize:clear)?" wire:loading.attr="disabled" style="{{ $btn }}background:#dc2626;">
                     optimize:clear
                 </button>
-                <button type="button" wire:click="artisanMigrateForce" wire:confirm="¿Ejecutar migraciones en producción (migrate --force)? Verifica un respaldo de la base de datos." wire:loading.attr="disabled" class="{{ $btn }} bg-teal-600">
+                <button type="button" wire:click="artisanMigrateForce" wire:confirm="¿Ejecutar migraciones en producción (migrate --force)? Verifica un respaldo de la base de datos." wire:loading.attr="disabled" style="{{ $btn }}background:#0d9488;">
                     migrate --force
                 </button>
             </div>

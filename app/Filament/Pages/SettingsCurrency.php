@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Pages\Concerns\HasSettingsSubNavigation;
 use App\Filament\Pages\Concerns\PersistsSystemSettings;
 use App\Models\Setting;
 use App\Services\ExchangeRateService;
@@ -15,6 +16,7 @@ use Filament\Pages\Page;
 class SettingsCurrency extends Page implements HasForms
 {
     use InteractsWithForms;
+    use HasSettingsSubNavigation;
     use PersistsSystemSettings;
 
     protected static string $view = 'filament.pages.settings';
